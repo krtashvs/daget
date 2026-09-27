@@ -12,7 +12,7 @@ export function MaintenanceScreen({ message }: { message: string | null }) {
         <div className="glass rounded-3xl px-6 py-5">
           <p className="flex items-center justify-center gap-2 text-sm font-semibold text-zinc-100">
             <span className="h-2 w-2 animate-pulse rounded-full bg-amber-300" />
-            Lagi istirahat
+            Lagi libur
           </p>
           <p className="mt-2 whitespace-pre-line text-sm text-zinc-400">
             {message?.trim() || "Daget lagi berhenti sebentar. Balik lagi nanti ya 👋"}

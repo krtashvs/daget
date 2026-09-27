@@ -174,7 +174,7 @@ Untuk menghentikan chat sementara tanpa menghapus data:
 1. Supabase Dashboard → **Table Editor** → tabel `app_settings`.
 2. Ubah kolom `maintenance` menjadi `true` (opsional: isi `maintenance_message`) → **Save**.
 
-Semua pengunjung langsung melihat layar "Lagi istirahat" dan pesan baru ditolak di database. Ubah kembali ke `false` untuk menyalakan lagi — aplikasi terbuka otomatis kembali normal.
+Semua pengunjung langsung melihat layar "Lagi libur" dan pesan baru ditolak di database. Ubah kembali ke `false` untuk menyalakan lagi — aplikasi terbuka otomatis kembali normal.
 
 Atau lewat SQL Editor:
 
