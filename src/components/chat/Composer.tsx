@@ -269,7 +269,7 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
       <TypingIndicator />
 
       {picker && (
-        <div className="glass-strong absolute bottom-full left-3 right-3 mb-1 animate-slide-up overflow-hidden rounded-2xl bg-ink-850/95 shadow-2xl shadow-black/50 sm:left-auto sm:right-4 sm:w-[380px]">
+        <div className="absolute bottom-full left-3 right-3 mb-1 animate-slide-up overflow-hidden rounded-2xl border border-white/[0.08] bg-ink-850 shadow-2xl shadow-black/50 sm:left-auto sm:right-4 sm:w-[380px]">
           {gifSearchEnabled && (
           <div className="flex gap-1 border-b border-white/[0.05] p-1.5">
             {(["emoji", "gif"] as const).map((tab) => (
@@ -292,7 +292,7 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
       )}
 
       {mention && mentionCandidates.length > 0 && !picker && (
-        <div className="glass-strong absolute bottom-full left-3 right-3 mb-1 animate-slide-up overflow-hidden rounded-2xl bg-ink-850/95 p-1 shadow-2xl shadow-black/50 sm:left-4 sm:right-auto sm:w-72" role="listbox">
+        <div className="absolute bottom-full left-3 right-3 mb-1 animate-slide-up overflow-hidden rounded-2xl border border-white/[0.08] bg-ink-850 p-1 shadow-2xl shadow-black/50 sm:left-4 sm:right-auto sm:w-72" role="listbox">
           <p className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Anggota</p>
           {mentionCandidates.map((name, i) => (
             <button
