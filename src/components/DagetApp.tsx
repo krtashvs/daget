@@ -23,6 +23,30 @@ type AuthState =
 
 const BLOCK_REASONS: BlockReason[] = ["not_member", "missing_role", "banned", "guild_not_configured"];
 
+/**
+ * Admin preview during maintenance: open the site with `?tes` once (kept in this browser).
+ * Visitors who aren't admins still see the maintenance screen after signing in, and the
+ * database rejects their messages, so the link grants nothing on its own.
+ */
+function readPreviewFlag(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.has("tes")) {
+      const on = params.get("tes") !== "0";
+      if (on) localStorage.setItem("daget.preview", "1");
+      else localStorage.removeItem("daget.preview");
+      params.delete("tes");
+      const query = params.toString();
+      window.history.replaceState(null, "", window.location.pathname + (query ? `?${query}` : "") + window.location.hash);
+      return on;
+    }
+    return localStorage.getItem("daget.preview") === "1";
+  } catch {
+    return false;
+  }
+}
+
 /** Read OAuth callback details before supabase-js consumes and clears the URL. */
 function readCallback(): { fresh: boolean; error: string | null } {
   if (typeof window === "undefined") return { fresh: false, error: null };
@@ -37,6 +61,7 @@ export function DagetApp({ config }: { config: PublicConfig }) {
   const gifSearchEnabled = config.gifSearchEnabled;
 
   const [callback] = useState(readCallback);
+  const [preview] = useState(readPreviewFlag);
   const session = useChat((s) => s.session);
   const setSession = useChat((s) => s.setSession);
   const kickReason = useChat((s) => s.kickReason);
@@ -142,12 +167,14 @@ export function DagetApp({ config }: { config: PublicConfig }) {
 
   let screen: React.ReactNode;
   if (!settings) screen = <div className="min-h-dvh" />;
-  else if (settings.maintenance) screen = <MaintenanceScreen message={settings.message} />;
+  else if (settings.maintenance && !preview) screen = <MaintenanceScreen message={settings.message} />;
   else if (auth.status === "loading") screen = <LoadingScreen />;
   else if (auth.status === "verifying") screen = <LoadingScreen label="Mengecek keanggotaan Discord…" />;
   else if (auth.status === "signed_out") screen = <LoginScreen guildName={settings.guildName} error={auth.error} />;
   else if (auth.status === "blocked")
     screen = <BlockedScreen reason={auth.reason} guildName={settings.guildName} inviteUrl={settings.inviteUrl} onSignOut={doSignOut} />;
+  else if (session && settings.maintenance && !session.isAdmin)
+    screen = <MaintenanceScreen message="Kamu sudah masuk ✅ Daget masih libur, tunggu dibuka admin ya." />;
   else if (session)
     screen = <ChatRoom key={session.userId} session={session} gifSearchEnabled={gifSearchEnabled} onSignOut={doSignOut} />;
   else screen = <LoadingScreen />;

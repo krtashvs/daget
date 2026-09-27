@@ -197,6 +197,8 @@ Untuk menghentikan chat sementara tanpa menghapus data:
 1. Supabase Dashboard → **Table Editor** → tabel `app_settings`.
 2. Ubah kolom `maintenance` menjadi `true` (opsional: isi `maintenance_message`) → **Save**.
 
+Admin tetap bisa masuk untuk tes lewat `https://<domain>/?tes` (tersimpan di browser itu; matikan dengan `?tes=0`). Selama mode istirahat hanya admin yang bisa mengirim pesan.
+
 Semua pengunjung langsung melihat layar "Lagi libur" dan pesan baru ditolak di database. Ubah kembali ke `false` untuk menyalakan lagi — aplikasi terbuka otomatis kembali normal.
 
 Atau lewat SQL Editor:
