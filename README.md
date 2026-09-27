@@ -167,6 +167,29 @@ Catatan:
 - Tidak perlu konfigurasi CORS/redirect di Supabase karena aplikasi tidak memakai Supabase Auth.
 - Pastikan `supabase/schema.sql` sudah dijalankan pada project Supabase yang sama dengan env di Vercel.
 
+## Login Discord (wajib anggota server)
+
+Sejak versi ini, masuk ke Daget memakai akun Discord. Hanya anggota server Discord yang ditentukan (opsional: dengan role tertentu) yang bisa chat. Nama dan foto profil diambil dari Discord, jadi setiap pesan jelas siapa pengirimnya.
+
+Cara kerja:
+
+1. Browser login lewat Supabase Auth (provider Discord, scope `identify guilds.members.read`).
+2. Edge Function `discord-verify` (`supabase/functions/discord-verify`) memakai token Discord untuk mengecek keanggotaan server, lalu membuat profil terverifikasi di `public.users`.
+3. Pesan hanya bisa dikirim lewat RPC `post_message` oleh profil terverifikasi yang tidak diblokir. Admin (`users.is_admin`) bisa menghapus pesan siapa pun lewat `remove_message`; `users.banned = true` memblokir seseorang.
+
+Setup (sekali):
+
+1. **Discord Developer Portal** → New Application → **OAuth2** → salin *Client ID* & *Client Secret*, tambahkan Redirect `https://<project-ref>.supabase.co/auth/v1/callback`.
+2. **Supabase → Authentication → Sign In / Providers → Discord** → aktifkan, isi Client ID & Secret.
+3. **Supabase → Authentication → URL Configuration** → *Site URL* = domain Vercel kamu, dan tambahkan `https://<domain-vercel>/**` ke *Redirect URLs*.
+4. Jalankan `supabase/discord_voice.sql` (setelah `schema.sql`) dan deploy Edge Function `discord-verify`.
+5. Isi tabel `app_settings`: `discord_guild_id` (Server ID), opsional `discord_role_id`, `discord_guild_name`, `discord_invite_url`, lalu set `require_discord = true`.
+
+## Voice note & balas dengan swipe
+
+- Tombol 🎤 muncul saat kolom pesan kosong: ketuk untuk merekam (maks. 2 menit), ketuk kirim atau 🗑 untuk batal. Rekaman memakai MP4/AAC jika browser mendukung (diputar di semua perangkat), selain itu WebM/Opus.
+- Di HP, geser pesan **ke kiri** untuk membalas. Tekan lama tetap membuka menu aksi.
+
 ## Mode istirahat (maintenance)
 
 Untuk menghentikan chat sementara tanpa menghapus data:

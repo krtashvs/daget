@@ -25,7 +25,7 @@ export function MembersPanel() {
         {online.length === 0 && <li className="px-3 py-6 text-center text-sm text-zinc-500">Menghubungkan…</li>}
         {online.map((u) => (
           <li key={u.userId} className="flex items-center gap-3 rounded-xl px-3 py-2 transition hover:bg-white/[0.04]">
-            <Avatar username={u.username} size={32} online />
+            <Avatar username={u.username} src={u.avatarUrl} size={32} online />
             <div className="min-w-0 flex-1">
               <p className="truncate text-sm font-medium" style={{ color: usernameColor(u.username) }}>
                 {u.username}

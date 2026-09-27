@@ -1,6 +1,6 @@
 "use client";
 
-import { Ellipsis, Hash, Search, UserPen, Users } from "lucide-react";
+import { Ellipsis, Hash, LogOut, Search, ShieldCheck, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { CHANNEL_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
@@ -9,15 +9,16 @@ import { Logo } from "../Logo";
 import { Avatar } from "../ui/Avatar";
 
 interface ChatHeaderProps {
-  onRename: () => void;
+  onSignOut: () => void;
   onHeight: (height: number) => void;
 }
 
-export function ChatHeader({ onRename, onHeight }: ChatHeaderProps) {
+export function ChatHeader({ onSignOut, onHeight }: ChatHeaderProps) {
   const panel = useChat((s) => s.panel);
   const togglePanel = useChat((s) => s.togglePanel);
   const onlineCount = useChat((s) => s.online.length);
-  const username = useChat((s) => s.session?.username ?? "");
+  const profile = useChat((s) => s.session);
+  const username = profile?.username ?? "";
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
@@ -92,10 +93,13 @@ export function ChatHeader({ onRename, onHeight }: ChatHeaderProps) {
             {menuOpen && (
               <div role="menu" className="glass-strong absolute right-0 top-full mt-2 w-60 animate-slide-up overflow-hidden rounded-2xl p-1.5 shadow-2xl shadow-black/50">
                 <div className="flex items-center gap-2.5 px-2.5 py-2">
-                  <Avatar username={username} size={32} online />
+                  <Avatar username={username} src={profile?.avatarUrl} size={32} online />
                   <div className="min-w-0">
-                    <p className="text-[11px] text-zinc-500">Masuk sebagai</p>
-                    <p className="truncate text-sm font-semibold text-zinc-100">{username}</p>
+                    <p className="flex items-center gap-1 truncate text-sm font-semibold text-zinc-100">
+                      {username}
+                      {profile?.isAdmin && <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-300" aria-label="Admin" />}
+                    </p>
+                    {profile?.handle && <p className="truncate text-[11px] text-zinc-500">@{profile.handle} · Discord</p>}
                   </div>
                 </div>
                 <div className="my-1 h-px bg-white/[0.06]" />
@@ -104,12 +108,12 @@ export function ChatHeader({ onRename, onHeight }: ChatHeaderProps) {
                   role="menuitem"
                   onClick={() => {
                     setMenuOpen(false);
-                    onRename();
+                    onSignOut();
                   }}
-                  className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left text-sm text-zinc-200 transition hover:bg-white/[0.06]"
+                  className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left text-sm text-red-300 transition hover:bg-white/[0.06]"
                 >
-                  <UserPen className="h-4 w-4 text-zinc-400" />
-                  Ganti Username
+                  <LogOut className="h-4 w-4" />
+                  Keluar
                 </button>
               </div>
             )}

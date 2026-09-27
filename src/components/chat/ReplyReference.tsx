@@ -1,9 +1,9 @@
 "use client";
 
-import { CornerUpLeft, ImageIcon } from "lucide-react";
+import { CornerUpLeft, ImageIcon, Mic } from "lucide-react";
 import { jumpToMessage } from "@/lib/chat-actions";
 import type { ReplyPreview } from "@/lib/types";
-import { usernameColor } from "@/lib/utils";
+import { mediaLabel, usernameColor } from "@/lib/utils";
 import { useChat } from "@/store/chat";
 import { Avatar } from "../ui/Avatar";
 
@@ -28,14 +28,14 @@ export function ReplyReference({ replyId }: { replyId: string }) {
           onClick={() => void jumpToMessage(preview)}
           className="flex min-w-0 items-center gap-1.5 text-left text-zinc-400 transition hover:text-zinc-200"
         >
-          <Avatar username={preview.username} size={16} />
+          <Avatar username={preview.username} src={preview.avatar_url} size={16} />
           <span className="shrink-0 font-semibold opacity-90" style={{ color: usernameColor(preview.username) }}>
             @{preview.username}
           </span>
           <span className="truncate">
             {preview.content || (
               <span className="inline-flex items-center gap-1 italic">
-                <ImageIcon className="h-3.5 w-3.5" /> {preview.type === "gif" ? "GIF" : "Gambar"}
+                {preview.type === "voice" ? <Mic className="h-3.5 w-3.5" /> : <ImageIcon className="h-3.5 w-3.5" />} {mediaLabel(preview.type)}
               </span>
             )}
           </span>

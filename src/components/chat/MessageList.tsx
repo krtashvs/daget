@@ -28,6 +28,7 @@ export function MessageList({ topInset }: { topInset: number }) {
   const session = useChat((s) => s.session);
   const me = session?.username ?? "";
   const myId = session?.userId ?? "";
+  const isAdmin = session?.isAdmin ?? false;
 
   const scrollerRef = useRef<HTMLDivElement>(null);
   const contentRef = useRef<HTMLDivElement>(null);
@@ -179,6 +180,7 @@ export function MessageList({ topInset }: { topInset: number }) {
                     message={m}
                     grouped={!newDay && isGrouped(prev, m)}
                     isOwn={m.user_id === myId}
+                    canModerate={isAdmin}
                     me={me}
                     highlighted={highlightId === m.id}
                   />

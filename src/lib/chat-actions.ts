@@ -1,14 +1,14 @@
 "use client";
 
 import {
-  deleteMessage as apiDeleteMessage,
   fetchMessagesAfter,
   fetchMessagesBefore,
   fetchMessagesBetween,
   fetchLatestMessages,
   fetchReplyPreviews,
-  sendMessage as apiSendMessage,
-  uploadImage,
+  postMessage,
+  removeMessage,
+  uploadMedia,
 } from "./api";
 import { PAGE_SIZE } from "./constants";
 import type { ChatMessage, GifResult, MessageRow, MessageType } from "./types";
@@ -125,6 +125,8 @@ function baseMessage(type: MessageType, content: string): ChatMessage | null {
     id: uuid(),
     user_id: s.session.userId,
     username: s.session.username,
+    avatar_url: s.session.avatarUrl,
+    author_handle: s.session.handle,
     content,
     type,
     media_url: null,
@@ -140,15 +142,16 @@ async function deliver(message: ChatMessage) {
   try {
     let mediaUrl = message.media_url;
     if (message.pendingFile) {
-      mediaUrl = await uploadImage(s.session.userId, message.pendingFile);
+      mediaUrl = await uploadMedia(s.session.authId, message.pendingFile);
       store().patchMessage(message.id, { media_url: mediaUrl, pendingFile: undefined });
     }
-    const row = await apiSendMessage(s.session.secret, {
+    const row = await postMessage({
       id: message.id,
       content: message.content,
       type: message.type,
       mediaUrl,
       replyTo: message.reply_to,
+      durationMs: message.duration_ms,
     });
     store().applyServerMessage(row);
   } catch (error) {
@@ -178,6 +181,12 @@ export function sendImage(file: File, caption: string) {
   enqueue({ ...message, pendingFile: file, localPreview: URL.createObjectURL(file) });
 }
 
+export function sendVoice(blob: Blob, durationMs: number) {
+  const message = baseMessage("voice", "");
+  if (!message) return;
+  enqueue({ ...message, duration_ms: Math.round(durationMs), pendingFile: blob, localPreview: URL.createObjectURL(blob) });
+}
+
 export function sendGif(gif: GifResult) {
   const message = baseMessage("gif", "");
   if (!message) return;
@@ -202,7 +211,7 @@ export async function deleteMessage(id: string) {
   }
   s.removeMessage(id);
   try {
-    await apiDeleteMessage(s.session.secret, id);
+    await removeMessage(id);
   } catch (error) {
     store().mergeMessages([message]);
     store().pushToast(friendlyError(error, "Gagal menghapus pesan."));

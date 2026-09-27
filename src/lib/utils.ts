@@ -1,20 +1,5 @@
-import { USERNAME_MAX, USERNAME_MIN, USERNAME_PATTERN } from "./constants";
-
 export function cn(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(" ");
-}
-
-export function normalizeUsername(raw: string): string {
-  return raw.trim().replace(/\s+/g, " ");
-}
-
-/** Returns an error message, or null if the username is valid. */
-export function validateUsername(raw: string): string | null {
-  const name = normalizeUsername(raw);
-  if (name.length < USERNAME_MIN) return `Username minimal ${USERNAME_MIN} karakter.`;
-  if (name.length > USERNAME_MAX) return `Username maksimal ${USERNAME_MAX} karakter.`;
-  if (!USERNAME_PATTERN.test(name)) return "Gunakan huruf, angka, spasi, titik, garis bawah, atau strip.";
-  return null;
 }
 
 function hashString(input: string): number {
@@ -41,9 +26,15 @@ export function avatarGradient(username: string): string {
 }
 
 export function initials(username: string): string {
-  const parts = username.trim().split(/\s+/).filter(Boolean);
-  if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
-  return username.slice(0, 2).toUpperCase();
+  // Only letters/digits, emoji-safe (no half surrogate pairs).
+  const words = username
+    .trim()
+    .split(/\s+/)
+    .map((w) => Array.from(w).filter((c) => /[\p{L}\p{N}]/u.test(c)))
+    .filter((chars) => chars.length > 0);
+  if (words.length === 0) return "?";
+  if (words.length >= 2) return (words[0][0] + words[1][0]).toUpperCase();
+  return words[0].slice(0, 2).join("").toUpperCase();
 }
 
 const timeFmt = new Intl.DateTimeFormat("id-ID", { hour: "2-digit", minute: "2-digit" });
@@ -115,6 +106,10 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid_type: "Jenis pesan tidak valid.",
   not_allowed: "Kamu hanya bisa menghapus pesanmu sendiri.",
   maintenance: "Daget lagi istirahat sebentar. Coba lagi nanti ya.",
+  discord_required: "Masuk dengan Discord dulu untuk mengirim pesan.",
+  not_verified: "Akun Discord kamu belum terverifikasi. Masuk lagi ya.",
+  not_signed_in: "Sesi kamu berakhir. Masuk lagi dengan Discord.",
+  banned: "Akun kamu diblokir dari Daget oleh admin.",
 };
 
 export function errorCode(error: unknown): string | null {
@@ -134,4 +129,11 @@ const fullFmt = new Intl.DateTimeFormat("id-ID", { dateStyle: "full", timeStyle:
 
 export function formatFull(iso: string): string {
   return fullFmt.format(new Date(iso));
+}
+
+/** Short label for non-text messages (previews, search, reply bars). */
+export function mediaLabel(type: string): string {
+  if (type === "voice") return "Pesan suara";
+  if (type === "gif") return "GIF";
+  return "Gambar";
 }

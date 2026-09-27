@@ -1,14 +1,15 @@
 "use client";
 
-import { ImagePlay, LoaderCircle, Plus, SendHorizontal, Smile, X } from "lucide-react";
+import { ImagePlay, LoaderCircle, Mic, Plus, SendHorizontal, Smile, Trash2, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { validateImageFile } from "@/lib/api";
-import { sendGif, sendImage, sendText } from "@/lib/chat-actions";
+import { sendGif, sendImage, sendText, sendVoice } from "@/lib/chat-actions";
 import { ALLOWED_IMAGE_ACCEPT, CHANNEL_NAME, MAX_MESSAGE_LENGTH, TYPING_THROTTLE_MS } from "@/lib/constants";
 import { broadcastTyping } from "@/lib/realtime";
 import type { GifResult } from "@/lib/types";
-import { cn, usernameColor } from "@/lib/utils";
+import { cn, mediaLabel, usernameColor } from "@/lib/utils";
+import { MAX_VOICE_MS, useVoiceRecorder, type RecorderError } from "@/hooks/useVoiceRecorder";
 import { useChat } from "@/store/chat";
 import { Avatar } from "../ui/Avatar";
 import { GifPanel } from "./GifPanel";
@@ -187,6 +188,20 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
 
   const canSend = Boolean(text.trim() || draftFile) && text.length <= MAX_MESSAGE_LENGTH;
 
+  const onVoiceRecorded = useCallback((blob: Blob, durationMs: number) => sendVoice(blob, durationMs), []);
+  const onVoiceError = useCallback(
+    (e: RecorderError) =>
+      pushToast(
+        e === "denied"
+          ? "Izin mikrofon ditolak. Izinkan mikrofon untuk situs ini di pengaturan browser."
+          : e === "unsupported"
+            ? "Browser ini belum mendukung rekam suara."
+            : "Gagal membuka mikrofon.",
+      ),
+    [pushToast],
+  );
+  const voice = useVoiceRecorder(onVoiceRecorded, onVoiceError);
+
   const submit = () => {
     if (!canSend) return;
     if (draftFile) {
@@ -320,7 +335,7 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
               <span className="font-semibold" style={{ color: usernameColor(replyingTo.username) }}>
                 {replyingTo.username}
               </span>
-              {replyingTo.content && <span className="text-zinc-500"> — {replyingTo.content}</span>}
+              <span className="text-zinc-500"> — {replyingTo.content || mediaLabel(replyingTo.type)}</span>
             </span>
             <button type="button" onClick={() => setReplyingTo(null)} className="icon-btn h-7 w-7" aria-label="Batal membalas">
               <X className="h-4 w-4" />
@@ -342,6 +357,28 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
           </div>
         )}
 
+        {voice.recording ? (
+          <div className="flex items-center gap-2 p-1.5" role="status" aria-label="Merekam pesan suara">
+            <button type="button" onClick={() => voice.stop(false)} className="icon-btn h-10 w-10 rounded-full hover:text-red-300" aria-label="Batalkan rekaman">
+              <Trash2 className="h-5 w-5" />
+            </button>
+            <span className="h-2.5 w-2.5 shrink-0 animate-pulse rounded-full bg-red-500" />
+            <span className="text-sm tabular-nums text-zinc-100">
+              {Math.floor(voice.elapsed / 60000)}:{String(Math.floor((voice.elapsed % 60000) / 1000)).padStart(2, "0")}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-sm text-zinc-500">
+              Merekam… maks {Math.round(MAX_VOICE_MS / 60000)} menit
+            </span>
+            <button
+              type="button"
+              onClick={() => voice.stop(true)}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-50 text-zinc-950 transition hover:bg-white active:scale-95"
+              aria-label="Kirim pesan suara"
+            >
+              <SendHorizontal className="h-[18px] w-[18px]" />
+            </button>
+          </div>
+        ) : (
         <div className="flex items-end gap-0.5 p-1.5">
           <button type="button" onClick={() => fileRef.current?.click()} className="icon-btn h-10 w-10 rounded-full" aria-label="Kirim gambar" title="Kirim gambar">
             <Plus className="h-5 w-5" />
@@ -386,19 +423,31 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
           >
             <Smile className="h-5 w-5" />
           </button>
-          <button
-            type="button"
-            onClick={submit}
-            disabled={!canSend}
-            className={cn(
-              "inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition",
-              canSend ? "bg-zinc-50 text-zinc-950 hover:bg-white active:scale-95" : "text-zinc-600",
-            )}
-            aria-label="Kirim"
-          >
-            <SendHorizontal className="h-[18px] w-[18px]" />
-          </button>
+          {canSend ? (
+            <button
+              type="button"
+              onClick={submit}
+              className="inline-flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-zinc-50 text-zinc-950 transition hover:bg-white active:scale-95"
+              aria-label="Kirim"
+            >
+              <SendHorizontal className="h-[18px] w-[18px]" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => {
+                setPicker(null);
+                void voice.start();
+              }}
+              className="icon-btn h-10 w-10 rounded-full"
+              aria-label="Rekam pesan suara"
+              title="Rekam pesan suara"
+            >
+              <Mic className="h-5 w-5" />
+            </button>
+          )}
         </div>
+        )}
 
         {text.length > MAX_MESSAGE_LENGTH - 200 && (
           <p className={cn("px-4 pb-2 text-right text-[11px]", text.length > MAX_MESSAGE_LENGTH ? "text-red-300" : "text-zinc-500")}>

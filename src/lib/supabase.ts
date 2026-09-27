@@ -16,7 +16,14 @@ export function getSupabase(): SupabaseClient {
   if (!url || !key) throw new Error("Supabase belum dikonfigurasi.");
   if (!client) {
     client = createClient(url, key, {
-      auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true,
+        // Implicit flow: login still completes if Discord hands the callback to another browser tab.
+        flowType: "implicit",
+        storageKey: "daget.auth",
+      },
       realtime: { params: { eventsPerSecond: 20 } },
     });
   }

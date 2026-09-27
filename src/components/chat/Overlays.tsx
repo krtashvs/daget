@@ -3,7 +3,7 @@
 import { Copy, ExternalLink, ImageIcon, Reply, Trash2, X } from "lucide-react";
 import { useCallback } from "react";
 import { deleteMessage } from "@/lib/chat-actions";
-import { formatStamp, usernameColor } from "@/lib/utils";
+import { formatStamp, mediaLabel, usernameColor } from "@/lib/utils";
 import { useChat } from "@/store/chat";
 import { Avatar } from "../ui/Avatar";
 import { useEscape } from "../ui/useEscape";
@@ -13,6 +13,7 @@ import { copyText } from "./MessageItem";
 export function MessageActionSheet() {
   const message = useChat((s) => s.sheetMessage);
   const myId = useChat((s) => s.session?.userId);
+  const isAdmin = useChat((s) => s.session?.isAdmin ?? false);
   const close = useCallback(() => useChat.getState().setSheetMessage(null), []);
   useEscape(Boolean(message), close);
   if (!message) return null;
@@ -27,8 +28,8 @@ export function MessageActionSheet() {
   const items = [
     !message.status && { icon: Reply, label: "Balas", onClick: act(() => useChat.getState().setReplyingTo(message)) },
     message.content && { icon: Copy, label: "Salin Teks", onClick: act(() => void copyText(message.content)) },
-    media && { icon: ImageIcon, label: message.type === "gif" ? "Lihat GIF" : "Lihat Gambar", onClick: act(() => useChat.getState().setLightboxUrl(media)) },
-    isOwn && { icon: Trash2, label: "Hapus Pesan", danger: true, onClick: act(() => useChat.getState().setDeleteTarget(message)) },
+    media && message.type !== "voice" && { icon: ImageIcon, label: message.type === "gif" ? "Lihat GIF" : "Lihat Gambar", onClick: act(() => useChat.getState().setLightboxUrl(media)) },
+    (isOwn || (isAdmin && !message.status)) && { icon: Trash2, label: "Hapus Pesan", danger: true, onClick: act(() => useChat.getState().setDeleteTarget(message)) },
   ].filter(Boolean) as { icon: typeof Reply; label: string; onClick: () => void; danger?: boolean }[];
 
   return (
@@ -37,7 +38,7 @@ export function MessageActionSheet() {
       <div className="glass-strong relative w-full animate-sheet-up rounded-t-3xl p-2 pb-[max(var(--safe-bottom),12px)] shadow-2xl sm:max-w-sm sm:animate-slide-up sm:rounded-3xl sm:pb-2">
         <div className="mx-auto mb-2 mt-1 h-1 w-10 rounded-full bg-white/15 sm:hidden" />
         <div className="flex gap-3 px-3 pb-3 pt-1">
-          <Avatar username={message.username} size={32} />
+          <Avatar username={message.username} src={message.avatar_url} size={32} />
           <div className="min-w-0 flex-1">
             <p className="flex items-baseline gap-2 text-sm">
               <span className="truncate font-semibold" style={{ color: usernameColor(message.username) }}>
@@ -45,7 +46,8 @@ export function MessageActionSheet() {
               </span>
               <span className="shrink-0 text-[11px] text-zinc-500">{formatStamp(message.created_at)}</span>
             </p>
-            <p className="line-clamp-2 text-sm text-zinc-400">{message.content || (message.type === "gif" ? "GIF" : "Gambar")}</p>
+            {message.author_handle && <p className="text-[11px] text-zinc-500">@{message.author_handle} · Discord</p>}
+            <p className="line-clamp-2 text-sm text-zinc-400">{message.content || mediaLabel(message.type)}</p>
           </div>
         </div>
         <div className="space-y-0.5">
@@ -81,7 +83,7 @@ export function DeleteConfirmDialog() {
         </h2>
         <p className="mt-1 text-sm text-zinc-400">Pesan ini akan dihapus untuk semua orang.</p>
         <div className="mt-4 rounded-2xl bg-black/30 p-3 text-sm text-zinc-300 ring-1 ring-inset ring-white/[0.05]">
-          <p className="line-clamp-3 whitespace-pre-wrap break-words">{target.content || (target.type === "gif" ? "GIF" : "Gambar")}</p>
+          <p className="line-clamp-3 whitespace-pre-wrap break-words">{target.content || mediaLabel(target.type)}</p>
         </div>
         <div className="mt-5 flex gap-2">
           <button type="button" onClick={close} className="h-11 flex-1 rounded-2xl bg-white/[0.06] text-sm font-semibold text-zinc-200 transition hover:bg-white/[0.1]">

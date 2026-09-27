@@ -1,4 +1,4 @@
-export type MessageType = "text" | "image" | "gif";
+export type MessageType = "text" | "image" | "gif" | "voice";
 
 /** Row of public.messages as returned by Supabase. */
 export interface MessageRow {
@@ -10,6 +10,12 @@ export interface MessageRow {
   media_url: string | null;
   reply_to: string | null;
   created_at: string;
+  /** Discord avatar at the time of sending (null for legacy/anonymous messages). */
+  avatar_url?: string | null;
+  /** Discord @username at the time of sending. */
+  author_handle?: string | null;
+  /** Voice note length. */
+  duration_ms?: number | null;
 }
 
 /** Message as held in the client store (row + optimistic-send state). */
@@ -18,7 +24,7 @@ export interface ChatMessage extends MessageRow {
   /** Object URL for an image that is still uploading. */
   localPreview?: string;
   /** Pending file kept so a failed upload can be retried. */
-  pendingFile?: File;
+  pendingFile?: Blob;
 }
 
 export interface ReplyPreview {
@@ -27,17 +33,25 @@ export interface ReplyPreview {
   content: string;
   type: MessageType;
   created_at: string;
+  avatar_url?: string | null;
 }
 
-export interface Session {
+/** Signed-in, verified Discord member. */
+export interface Profile {
+  /** public.users.id */
   userId: string;
+  /** auth.users.id — storage uploads live under this folder. */
+  authId: string;
   username: string;
-  secret: string;
+  avatarUrl: string | null;
+  handle: string | null;
+  isAdmin: boolean;
 }
 
 export interface OnlineUser {
   userId: string;
   username: string;
+  avatarUrl: string | null;
   onlineAt: string;
 }
 

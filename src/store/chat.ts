@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ChatMessage, ConnectionStatus, MessageRow, OnlineUser, ReplyPreview, Session } from "@/lib/types";
+import type { ChatMessage, ConnectionStatus, MessageRow, OnlineUser, Profile, ReplyPreview } from "@/lib/types";
 import { compareMessages } from "@/lib/utils";
 import { TYPING_TTL_MS } from "@/lib/constants";
 
@@ -11,7 +11,7 @@ export interface Toast {
 }
 
 interface ChatState {
-  session: Session | null;
+  session: Profile | null;
   status: ConnectionStatus;
 
   messages: ChatMessage[];
@@ -43,7 +43,7 @@ interface ChatState {
   /** Set when this browser lost its username; the app returns to the join screen. */
   kickReason: string | null;
 
-  setSession: (session: Session | null) => void;
+  setSession: (session: Profile | null) => void;
   setStatus: (status: ConnectionStatus) => void;
 
   setInitialMessages: (rows: MessageRow[], hasMore: boolean) => void;

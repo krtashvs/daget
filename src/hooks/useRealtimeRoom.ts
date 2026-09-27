@@ -1,17 +1,19 @@
 "use client";
 
 import { useEffect } from "react";
-import { touchUser } from "@/lib/api";
+import { touchMember } from "@/lib/api";
 import { ensureReplies, syncMessages } from "@/lib/chat-actions";
 import { HEARTBEAT_MS, ROOM_CHANNEL } from "@/lib/constants";
 import { setActiveChannel } from "@/lib/realtime";
 import { getSupabase } from "@/lib/supabase";
-import type { MessageRow, OnlineUser, Session } from "@/lib/types";
+import type { MessageRow, OnlineUser, Profile } from "@/lib/types";
+import { errorCode } from "@/lib/utils";
 import { useChat } from "@/store/chat";
 
 interface PresenceMeta {
   user_id: string;
   username: string;
+  avatar_url: string | null;
   online_at: string;
 }
 
@@ -27,8 +29,8 @@ interface TypingPayload {
  *  • presence (who is online)
  *  • broadcast "typing" events
  */
-export function useRealtimeRoom(session: Session) {
-  const { userId, username, secret } = session;
+export function useRealtimeRoom(session: Profile) {
+  const { userId, username, avatarUrl, authId } = session;
 
   useEffect(() => {
     const supabase = getSupabase();
@@ -65,7 +67,7 @@ export function useRealtimeRoom(session: Session) {
         for (const [key, metas] of Object.entries(state)) {
           const meta = metas[metas.length - 1];
           if (!meta) continue;
-          users.push({ userId: meta.user_id ?? key, username: meta.username, onlineAt: meta.online_at });
+          users.push({ userId: meta.user_id ?? key, username: meta.username, avatarUrl: meta.avatar_url ?? null, onlineAt: meta.online_at });
         }
         users.sort((a, b) => a.username.localeCompare(b.username, "id", { sensitivity: "base" }));
         store().setOnline(users);
@@ -80,7 +82,7 @@ export function useRealtimeRoom(session: Session) {
           const reconnected = everConnected;
           everConnected = true;
           store().setStatus("connected");
-          void channel.track({ user_id: userId, username, online_at: new Date().toISOString() } satisfies PresenceMeta);
+          void channel.track({ user_id: userId, username, avatar_url: avatarUrl, online_at: new Date().toISOString() } satisfies PresenceMeta);
           if (reconnected) void syncMessages();
         } else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
           store().setStatus(everConnected ? "reconnecting" : "connecting");
@@ -93,14 +95,18 @@ export function useRealtimeRoom(session: Session) {
 
     const heartbeat = () => {
       if (document.visibilityState !== "visible") return;
-      touchUser(secret)
-        .then((current) => {
-          // Our name was released while we were away and someone else took it.
-          if (current && current !== username) {
-            store().setKickReason("Username kamu dipakai orang lain karena kamu lama tidak aktif. Pilih username lagi.");
+      touchMember(authId)
+        .then((profile) => {
+          const current = store().session;
+          if (current && (profile.username !== current.username || profile.isAdmin !== current.isAdmin)) {
+            store().setSession(profile);
           }
         })
-        .catch(() => undefined);
+        .catch((error) => {
+          const code = errorCode(error);
+          if (code === "banned") store().setKickReason("Akun kamu diblokir dari Daget oleh admin.");
+          else if (code === "not_verified" || code === "not_signed_in") store().setKickReason("Sesi kamu berakhir. Silakan masuk lagi dengan Discord.");
+        });
     };
     const heartbeatTimer = window.setInterval(heartbeat, HEARTBEAT_MS);
     heartbeat();
@@ -124,5 +130,5 @@ export function useRealtimeRoom(session: Session) {
       setActiveChannel(null, null);
       void supabase.removeChannel(channel);
     };
-  }, [userId, username, secret]);
+  }, [userId, username, avatarUrl, authId]);
 }

@@ -5,7 +5,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { searchMessages } from "@/lib/api";
 import { jumpToMessage } from "@/lib/chat-actions";
 import type { MessageRow } from "@/lib/types";
-import { escapeRegExp, formatStamp, friendlyError, usernameColor } from "@/lib/utils";
+import { escapeRegExp, formatStamp, friendlyError, mediaLabel, usernameColor } from "@/lib/utils";
 import { useChat } from "@/store/chat";
 import { Avatar } from "../ui/Avatar";
 
@@ -108,7 +108,7 @@ export function SearchPanel() {
                     onClick={() => open(row)}
                     className="flex w-full gap-3 rounded-xl px-3 py-2.5 text-left transition hover:bg-white/[0.05]"
                   >
-                    <Avatar username={row.username} size={32} />
+                    <Avatar username={row.username} src={row.avatar_url} size={32} />
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline gap-2">
                         <span className="truncate text-sm font-semibold" style={{ color: usernameColor(row.username) }}>
@@ -117,8 +117,8 @@ export function SearchPanel() {
                         <span className="shrink-0 text-[11px] text-zinc-500">{formatStamp(row.created_at)}</span>
                       </div>
                       <p className="line-clamp-3 whitespace-pre-wrap break-words text-sm text-zinc-300">
-                        {highlight(row.content, query)}
-                        {row.type !== "text" && <ImageIcon className="ml-1 inline h-3.5 w-3.5 text-zinc-500" />}
+                        {row.content ? highlight(row.content, query) : <span className="italic text-zinc-500">{mediaLabel(row.type)}</span>}
+                        {row.type !== "text" && row.content && <ImageIcon className="ml-1 inline h-3.5 w-3.5 text-zinc-500" />}
                       </p>
                     </div>
                   </button>

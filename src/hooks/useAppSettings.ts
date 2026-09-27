@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { fetchAppSettings, type AppSettings } from "@/lib/api";
+import { DEFAULT_SETTINGS, fetchAppSettings, type AppSettings } from "@/lib/api";
 import { getSupabase } from "@/lib/supabase";
 
 /** Live app settings (maintenance mode). `null` until the first load finishes. */
@@ -19,7 +19,7 @@ export function useAppSettings(enabled: boolean): AppSettings | null {
     void load();
     // Never block the app for long if the settings request is slow.
     const fallback = window.setTimeout(() => {
-      if (alive) setSettings((s) => s ?? { maintenance: false, message: null });
+      if (alive) setSettings((s) => s ?? DEFAULT_SETTINGS);
     }, 4000);
 
     const channel = getSupabase()

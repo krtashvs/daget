@@ -3,7 +3,7 @@
 import { ImagePlus, WifiOff } from "lucide-react";
 import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 import { validateImageFile } from "@/lib/api";
-import type { Session } from "@/lib/types";
+import type { Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
 import { useRealtimeRoom } from "@/hooks/useRealtimeRoom";
 import { useChat } from "@/store/chat";
@@ -15,12 +15,12 @@ import { DeleteConfirmDialog, Lightbox, MessageActionSheet } from "./Overlays";
 import { SearchPanel } from "./SearchPanel";
 
 interface ChatRoomProps {
-  session: Session;
+  session: Profile;
   gifSearchEnabled: boolean;
-  onRename: () => void;
+  onSignOut: () => void;
 }
 
-export function ChatRoom({ session, gifSearchEnabled, onRename }: ChatRoomProps) {
+export function ChatRoom({ session, gifSearchEnabled, onSignOut }: ChatRoomProps) {
   useRealtimeRoom(session);
 
   const panel = useChat((s) => s.panel);
@@ -72,7 +72,7 @@ export function ChatRoom({ session, gifSearchEnabled, onRename }: ChatRoomProps)
         onDrop={onDrop}
         aria-label="Chat"
       >
-        <ChatHeader onRename={onRename} onHeight={onHeaderHeight} />
+        <ChatHeader onSignOut={onSignOut} onHeight={onHeaderHeight} />
 
         {status !== "connected" && (
           <div
