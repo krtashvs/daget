@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ChatMessage, ConnectionStatus, Member, MessageRow, OnlineUser, Profile, ReplyPreview, RoleDef } from "@/lib/types";
+import type { ChatMessage, ConnectionStatus, LiveStatus, Member, MessageRow, OnlineUser, Profile, ReactionRow, ReplyPreview, RoleDef } from "@/lib/types";
 import { compareMessages } from "@/lib/utils";
 import { TYPING_TTL_MS } from "@/lib/constants";
 
@@ -48,6 +48,14 @@ interface ChatState {
   profileUserId: string | null;
   /** Filters to apply when the search panel opens (e.g. from a profile card). */
   searchPreset: { from?: string | null; mentions?: string | null } | null;
+  /** Reactions per message id, in the order they were added. */
+  reactions: Record<string, ReactionRow[]>;
+  /** Message whose reaction picker is open. */
+  reactionTarget: string | null;
+  /** YouTube live status of the channel (null until first check). */
+  live: LiveStatus | null;
+  /** Watch-together player open. */
+  watchOpen: boolean;
   /** Set when this browser lost its username; the app returns to the join screen. */
   kickReason: string | null;
 
@@ -85,6 +93,12 @@ interface ChatState {
   setLightboxUrl: (url: string | null) => void;
   setKickReason: (reason: string | null) => void;
   setMembers: (members: Member[]) => void;
+  setLive: (live: LiveStatus | null) => void;
+  setReactionsFor: (messageIds: string[], rows: ReactionRow[]) => void;
+  addReaction: (row: ReactionRow) => void;
+  removeReaction: (row: ReactionRow) => void;
+  setReactionTarget: (messageId: string | null) => void;
+  setWatchOpen: (open: boolean) => void;
   setRoleDefs: (roles: RoleDef[]) => void;
   openProfile: (userId: string | null) => void;
   openSearchWith: (preset: { from?: string | null; mentions?: string | null }) => void;
@@ -124,6 +138,10 @@ export const useChat = create<ChatState>()((set, get) => ({
   panel: null,
   kickReason: null,
   members: {},
+  live: null,
+  watchOpen: false,
+  reactions: {},
+  reactionTarget: null,
   roleDefs: {},
   profileUserId: null,
   searchPreset: null,
@@ -233,6 +251,33 @@ export const useChat = create<ChatState>()((set, get) => ({
   setDeleteTarget: (deleteTarget) => set({ deleteTarget }),
   setLightboxUrl: (lightboxUrl) => set({ lightboxUrl }),
   setKickReason: (kickReason) => set({ kickReason }),
+  setReactionsFor: (messageIds, rows) =>
+    set((s) => {
+      const next = { ...s.reactions };
+      for (const id of messageIds) next[id] = [];
+      for (const r of rows) (next[r.message_id] ??= []).push(r);
+      return { reactions: next };
+    }),
+  addReaction: (row) =>
+    set((s) => {
+      const list = s.reactions[row.message_id] ?? [];
+      if (list.some((r) => r.user_id === row.user_id && r.emoji === row.emoji)) return {};
+      return { reactions: { ...s.reactions, [row.message_id]: [...list, row] } };
+    }),
+  removeReaction: (row) =>
+    set((s) => {
+      const list = s.reactions[row.message_id];
+      if (!list) return {};
+      return {
+        reactions: {
+          ...s.reactions,
+          [row.message_id]: list.filter((r) => !(r.user_id === row.user_id && r.emoji === row.emoji)),
+        },
+      };
+    }),
+  setReactionTarget: (reactionTarget) => set({ reactionTarget, sheetMessage: null }),
+  setLive: (live) => set((s) => ({ live, watchOpen: live?.live && live.videoId ? s.watchOpen : false })),
+  setWatchOpen: (watchOpen) => set({ watchOpen }),
   setMembers: (list) => set({ members: Object.fromEntries(list.map((m) => [m.id, m])) }),
   setRoleDefs: (roles) => set({ roleDefs: Object.fromEntries(roles.map((r) => [r.id, r])) }),
   openProfile: (profileUserId) => set({ profileUserId, sheetMessage: null }),

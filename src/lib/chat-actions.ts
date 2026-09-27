@@ -5,7 +5,9 @@ import {
   fetchMessagesBefore,
   fetchMessagesBetween,
   fetchLatestMessages,
+  fetchReactions,
   fetchReplyPreviews,
+  toggleReaction,
   fetchRoleDefs,
   listMembers,
   postMessage,
@@ -57,6 +59,7 @@ export function syncMessages(): Promise<void> {
         const rows = await fetchLatestMessages();
         store().setInitialMessages(rows, rows.length >= PAGE_SIZE);
         void ensureReplies(rows);
+        void loadReactions(rows);
         return;
       }
       const rows = await fetchMessagesAfter(last.created_at);
@@ -66,10 +69,13 @@ export function syncMessages(): Promise<void> {
         store().resetRoom();
         store().setInitialMessages(latest, latest.length >= PAGE_SIZE);
         void ensureReplies(latest);
+        void loadReactions(latest);
         return;
       }
       store().mergeMessages(rows);
       void ensureReplies(rows);
+      // Catch up on reactions for everything loaded, not just new rows.
+      void loadReactions(store().messages.filter((m) => !m.status));
     } catch (error) {
       store().pushToast(friendlyError(error, "Gagal memuat pesan."));
     } finally {
@@ -89,6 +95,7 @@ export async function loadOlderMessages() {
     const rows = await fetchMessagesBefore(oldest.created_at);
     store().prependMessages(rows, rows.length >= PAGE_SIZE);
     void ensureReplies(rows);
+    void loadReactions(rows);
   } catch (error) {
     store().pushToast(friendlyError(error, "Gagal memuat pesan lama."));
   } finally {
@@ -109,6 +116,7 @@ export async function jumpToMessage(target: Pick<MessageRow, "id" | "created_at"
       }
       store().prependMessages(rows, store().hasMore);
       void ensureReplies(rows);
+      void loadReactions(rows);
     } catch (error) {
       store().pushToast(friendlyError(error, "Gagal membuka pesan."));
       return;
@@ -235,4 +243,36 @@ export function refreshMembers(): Promise<void> {
       membersLoading = null;
     });
   return membersLoading;
+}
+
+/** Load reactions for the given (confirmed) messages. */
+export async function loadReactions(rows: Pick<MessageRow, "id">[]) {
+  const ids = rows.map((r) => r.id);
+  if (ids.length === 0) return;
+  try {
+    const reactions = await fetchReactions(ids);
+    store().setReactionsFor(ids, reactions);
+  } catch {
+    /* reactions are best-effort */
+  }
+}
+
+/** Optimistically toggle my reaction; realtime echoes are de-duplicated by the store. */
+export async function reactTo(messageId: string, emoji: string) {
+  const s = store();
+  const me = s.session;
+  if (!me) return;
+  const row = { message_id: messageId, user_id: me.userId, emoji };
+  const had = (s.reactions[messageId] ?? []).some((r) => r.user_id === me.userId && r.emoji === emoji);
+  if (had) s.removeReaction(row);
+  else s.addReaction(row);
+  try {
+    const active = await toggleReaction(messageId, emoji);
+    if (active) store().addReaction(row);
+    else store().removeReaction(row);
+  } catch (error) {
+    if (had) store().addReaction(row);
+    else store().removeReaction(row);
+    store().pushToast(friendlyError(error, "Gagal menambahkan reaksi."));
+  }
 }

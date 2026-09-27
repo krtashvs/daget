@@ -1,6 +1,6 @@
 "use client";
 
-import { AlertCircle, Copy, CornerUpLeft, ImageOff, LoaderCircle, Reply, RotateCcw, Trash2 } from "lucide-react";
+import { AlertCircle, Copy, CornerUpLeft, ImageOff, LoaderCircle, Reply, RotateCcw, SmilePlus, Trash2 } from "lucide-react";
 import { memo, useCallback, useState } from "react";
 import { deleteMessage, retryMessage } from "@/lib/chat-actions";
 import type { ChatMessage } from "@/lib/types";
@@ -11,6 +11,7 @@ import { useChat } from "@/store/chat";
 import { Avatar } from "../ui/Avatar";
 import { MessageContent, mentionsUser } from "./MessageContent";
 import { ReplyReference } from "./ReplyReference";
+import { ReactionBar } from "./Reactions";
 import { VoiceNote } from "./VoiceNote";
 
 interface MessageItemProps {
@@ -184,6 +185,8 @@ export const MessageItem = memo(function MessageItem({ message, grouped, isOwn, 
             </button>
           )}
 
+          {!message.status && <ReactionBar messageId={message.id} />}
+
           {message.status === "failed" && (
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-red-300/90">
               <span className="inline-flex items-center gap-1">
@@ -204,6 +207,15 @@ export const MessageItem = memo(function MessageItem({ message, grouped, isOwn, 
 
       {!message.status && (
         <div className="glass-strong absolute -top-3 right-3 z-10 hidden items-center rounded-xl p-0.5 shadow-lg shadow-black/30 [@media(hover:hover)]:group-hover:flex">
+          <button
+            type="button"
+            onClick={() => useChat.getState().setReactionTarget(message.id)}
+            className="icon-btn h-8 w-8"
+            aria-label="Tambah reaksi"
+            title="Tambah reaksi"
+          >
+            <SmilePlus className="h-4 w-4" />
+          </button>
           <button type="button" onClick={onReply} className="icon-btn h-8 w-8" aria-label="Balas" title="Balas">
             <Reply className="h-4 w-4" />
           </button>

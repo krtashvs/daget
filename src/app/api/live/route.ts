@@ -1,0 +1,98 @@
+import { NextResponse } from "next/server";
+import { getPublicConfig } from "@/lib/config";
+
+export const dynamic = "force-dynamic";
+
+interface LiveSettings {
+  youtube_channel: string | null;
+  youtube_name: string | null;
+  live_mode: "auto" | "on" | "off";
+  live_video_id: string | null;
+}
+
+export interface LiveStatus {
+  live: boolean;
+  videoId: string | null;
+  title: string | null;
+  channelName: string | null;
+  channelUrl: string | null;
+}
+
+const UA = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36";
+
+/** "@handle", "UC…" channel id, or a full youtube.com URL → channel path ("/@handle" or "/channel/UC…"). */
+function channelPath(raw: string): string | null {
+  let v = raw.trim();
+  try {
+    if (/^https?:\/\//i.test(v)) v = new URL(v).pathname.replace(/\/(live|featured|videos|streams)\/?$/i, "");
+  } catch {
+    return null;
+  }
+  v = v.replace(/^\/+|\/+$/g, "");
+  if (/^@[\w.-]{3,100}$/.test(v)) return `/${v}`;
+  if (/^UC[\w-]{22}$/.test(v)) return `/channel/${v}`;
+  if (/^channel\/UC[\w-]{22}$/.test(v)) return `/${v}`;
+  if (/^[\w.-]{3,100}$/.test(v)) return `/@${v}`;
+  return null;
+}
+
+function decodeJsonString(s: string): string {
+  try {
+    return JSON.parse(`"${s}"`);
+  } catch {
+    return s;
+  }
+}
+
+async function detect(path: string): Promise<{ live: boolean; videoId: string | null; title: string | null }> {
+  const res = await fetch(`https://www.youtube.com${path}/live`, {
+    headers: { "User-Agent": UA, "Accept-Language": "en-US,en;q=0.9", Cookie: "CONSENT=YES+1; SOCS=CAI" },
+    next: { revalidate: 60 },
+  });
+  if (!res.ok) return { live: false, videoId: null, title: null };
+  const html = await res.text();
+  const videoId = html.match(/"currentVideoEndpoint":\{[^}]*?"url":"\/watch\?v=([\w-]{11})/)?.[1] ?? null;
+  const live = Boolean(videoId) && /"isLive":true/.test(html);
+  const rawTitle = html.match(/"videoPrimaryInfoRenderer":\{"title":\{"runs":\[\{"text":"((?:[^"\\]|\\.)*)"/)?.[1];
+  return { live, videoId: live ? videoId : null, title: live && rawTitle ? decodeJsonString(rawTitle) : null };
+}
+
+export async function GET() {
+  const off: LiveStatus = { live: false, videoId: null, title: null, channelName: null, channelUrl: null };
+  const config = getPublicConfig();
+  if (!config.supabaseUrl || !config.supabaseKey) return NextResponse.json(off);
+
+  let settings: LiveSettings | null = null;
+  try {
+    const r = await fetch(
+      `${config.supabaseUrl}/rest/v1/app_settings?id=eq.1&select=youtube_channel,youtube_name,live_mode,live_video_id`,
+      { headers: { apikey: config.supabaseKey, Authorization: `Bearer ${config.supabaseKey}` }, cache: "no-store" },
+    );
+    settings = ((await r.json()) as LiveSettings[])[0] ?? null;
+  } catch {
+    settings = null;
+  }
+  if (!settings || settings.live_mode === "off") return NextResponse.json(off);
+
+  const path = settings.youtube_channel ? channelPath(settings.youtube_channel) : null;
+  const base: LiveStatus = {
+    ...off,
+    channelName: settings.youtube_name,
+    channelUrl: path ? `https://www.youtube.com${path}` : null,
+  };
+
+  let status: LiveStatus = base;
+  if (settings.live_mode === "on") {
+    const videoId = settings.live_video_id && /^[\w-]{11}$/.test(settings.live_video_id) ? settings.live_video_id : null;
+    status = { ...base, live: true, videoId };
+    if (!videoId && path) status = { ...base, ...(await detect(path).catch(() => ({})) ), live: true };
+  } else if (path) {
+    try {
+      status = { ...base, ...(await detect(path)) };
+    } catch {
+      status = base;
+    }
+  }
+
+  return NextResponse.json(status, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=60" } });
+}

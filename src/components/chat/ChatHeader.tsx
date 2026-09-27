@@ -1,6 +1,7 @@
 "use client";
 
-import { Ellipsis, Hash, LogOut, RefreshCw, Search, UserRound, Users } from "lucide-react";
+import { Bell, BellOff, Ellipsis, Hash, LogOut, RefreshCw, Search, Tv, UserRound, Users } from "lucide-react";
+import { notificationsEnabled, notificationsSupported, setNotifications } from "@/lib/notify";
 import { signInWithDiscord } from "@/lib/api";
 import { useEffect, useRef, useState } from "react";
 import { CHANNEL_NAME } from "@/lib/constants";
@@ -21,6 +22,24 @@ export function ChatHeader({ onSignOut, onHeight }: ChatHeaderProps) {
   const profile = useChat((s) => s.session);
   const username = profile?.username ?? "";
   const [menuOpen, setMenuOpen] = useState(false);
+  const [notifyOn, setNotifyOn] = useState(false);
+  useEffect(() => setNotifyOn(notificationsEnabled()), []);
+
+  const toggleNotify = async () => {
+    if (!notifyOn && !notificationsSupported()) {
+      useChat
+        .getState()
+        .pushToast("Browser ini belum mendukung notifikasi. Di iPhone, tambahkan Daget ke Home Screen dulu (Share → Add to Home Screen).");
+      return;
+    }
+    const on = await setNotifications(!notifyOn);
+    setNotifyOn(on);
+    useChat
+      .getState()
+      .pushToast(on ? "Notifikasi mention nyala 🔔" : notifyOn ? "Notifikasi mention dimatikan." : "Izin notifikasi ditolak di browser.");
+  };
+  const liveVideo = useChat((s) => (s.live?.live ? s.live.videoId : null));
+  const watchOpen = useChat((s) => s.watchOpen);
   const menuRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
 
@@ -54,13 +73,26 @@ export function ChatHeader({ onSignOut, onHeight }: ChatHeaderProps) {
         <div className="flex min-w-0 items-center gap-1">
           <Hash className="h-[18px] w-[18px] shrink-0 text-zinc-500" />
           <h1 className="truncate text-[15px] font-semibold text-zinc-100">{CHANNEL_NAME}</h1>
-          <span className="ml-2 hidden items-center gap-1.5 text-xs text-zinc-500 sm:inline-flex">
+          <span className={cn("ml-2 hidden items-center gap-1.5 whitespace-nowrap text-xs text-zinc-500", !watchOpen && "sm:inline-flex")}>
             <span className="h-1.5 w-1.5 rounded-full bg-emerald-400" />
             {onlineCount} online
           </span>
         </div>
 
         <div className="ml-auto flex items-center">
+          {liveVideo && (
+            <button
+              type="button"
+              onClick={() => useChat.getState().setWatchOpen(!watchOpen)}
+              className={cn("icon-btn relative w-auto gap-1.5 px-2 text-red-400 hover:text-red-300", watchOpen && "bg-red-500/15")}
+              aria-label={watchOpen ? "Tutup live" : "Nonton live"}
+              aria-pressed={watchOpen}
+              title="Nonton live"
+            >
+              <Tv className="h-5 w-5" />
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+            </button>
+          )}
           <button
             type="button"
             onClick={() => togglePanel("search")}
@@ -126,6 +158,17 @@ export function ChatHeader({ onSignOut, onHeight }: ChatHeaderProps) {
                 >
                   <RefreshCw className="h-4 w-4 text-zinc-400" />
                   Sinkronkan Role Discord
+                </button>
+                <button
+                  type="button"
+                  role="menuitemcheckbox"
+                  aria-checked={notifyOn}
+                  onClick={() => void toggleNotify()}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left text-sm text-zinc-200 transition hover:bg-white/[0.06]"
+                >
+                  {notifyOn ? <Bell className="h-4 w-4 text-zinc-400" /> : <BellOff className="h-4 w-4 text-zinc-400" />}
+                  <span className="flex-1">Notifikasi mention</span>
+                  <span className={cn("text-xs font-semibold", notifyOn ? "text-emerald-300" : "text-zinc-500")}>{notifyOn ? "ON" : "OFF"}</span>
                 </button>
                 <button
                   type="button"

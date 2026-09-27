@@ -198,6 +198,16 @@ Jalankan `supabase/roles_profiles_search.sql` setelah `discord_voice.sql`.
 - **Mention**: ketik `@` untuk memilih anggota (disimpan sebagai @username Discord, ditampilkan sebagai nama), **role** (`@guardian`, `@vice-principal`, `@rizz-academy-student`, … — `supabase/role_mentions.sql`), atau `@everyone` / `@here`. Semua anggota boleh memakai ketiganya. Pesan yang menyebut kamu, role kamu, atau @everyone di-highlight.
 - **Search by**: panel cari punya filter **Dari** (pengirim), **Menyebut** (anggota yang di-mention), dan **Jenis** (semua media, gambar, GIF, pesan suara, link) — bisa digabung dengan kata kunci.
 
+## Live YouTube, nonton bareng, reaksi, notifikasi
+
+Jalankan `supabase/reactions_live.sql` setelah `role_mentions.sql`.
+
+- **Deteksi live**: isi `app_settings.youtube_channel` (handle `@nama`, channel id `UC…`, atau link channel) dan `youtube_name`. Route `/api/live` mengecek halaman `/live` channel tersebut (di-cache 60 detik di edge, jadi YouTube paling banyak dicek sekali per menit). `live_mode`: `auto` (default), `on` (paksa live; isi `live_video_id` bila perlu), `off`.
+- **Banner LIVE** muncul otomatis di atas chat + ikon 📺 di header.
+- **Nonton bareng**: di laptop stream tampil di kiri chat; di HP player di atas chat (bisa dikecilkan tanpa berhenti).
+- **Reaksi emoji**: hover pesan → 😊+ (laptop) atau tekan lama → baris reaksi cepat (HP). Klik reaksi yang sudah ada untuk ikut/batal. Realtime ke semua orang.
+- **Notifikasi mention**: saat tab Daget di belakang dan kamu di-mention (nama, role, atau @everyone): bunyi "ping", judul tab jadi `(N) Daget`, dan notifikasi browser jika diaktifkan (menu ⋯ → Notifikasi mention). Di iPhone notifikasi browser hanya bisa jika Daget ditambahkan ke Home Screen.
+
 ## Voice note & balas dengan swipe
 
 - Tombol 🎤 muncul saat kolom pesan kosong: ketuk untuk merekam (maks. 2 menit), ketuk kirim atau 🗑 untuk batal. Rekaman memakai MP4/AAC jika browser mendukung (diputar di semua perangkat), selain itu WebM/Opus.

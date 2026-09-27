@@ -1,6 +1,6 @@
 import { getSupabase } from "./supabase";
 import { ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, MEDIA_BUCKET, PAGE_SIZE } from "./constants";
-import type { Member, MessageRow, MessageType, Profile, ProfileDetails, ReplyPreview, Role, RoleDef } from "./types";
+import type { Member, MessageRow, MessageType, Profile, ProfileDetails, ReactionRow, ReplyPreview, Role, RoleDef } from "./types";
 import { uuid } from "./utils";
 
 const MESSAGE_COLUMNS =
@@ -285,4 +285,25 @@ export async function searchMessagesAdvanced(filters: SearchFilters): Promise<Me
   });
   if (error) throw error;
   return data as MessageRow[];
+}
+
+export async function fetchReactions(messageIds: string[]): Promise<ReactionRow[]> {
+  const out: ReactionRow[] = [];
+  for (let i = 0; i < messageIds.length; i += 100) {
+    const chunk = messageIds.slice(i, i + 100);
+    const { data, error } = await getSupabase()
+      .from("message_reactions")
+      .select("message_id,user_id,emoji")
+      .in("message_id", chunk)
+      .order("created_at", { ascending: true });
+    if (error) throw error;
+    out.push(...(data as ReactionRow[]));
+  }
+  return out;
+}
+
+export async function toggleReaction(messageId: string, emoji: string): Promise<boolean> {
+  const { data, error } = await getSupabase().rpc("toggle_reaction", { p_message_id: messageId, p_emoji: emoji });
+  if (error) throw error;
+  return Boolean(data);
 }

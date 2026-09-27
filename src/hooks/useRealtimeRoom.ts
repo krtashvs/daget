@@ -2,11 +2,12 @@
 
 import { useEffect } from "react";
 import { touchMember } from "@/lib/api";
-import { ensureReplies, refreshMembers, syncMessages } from "@/lib/chat-actions";
+import { ensureReplies, jumpToMessage, refreshMembers, syncMessages } from "@/lib/chat-actions";
+import { handleIncoming, initNotifier } from "@/lib/notify";
 import { HEARTBEAT_MS, ROOM_CHANNEL } from "@/lib/constants";
 import { setActiveChannel } from "@/lib/realtime";
 import { getSupabase } from "@/lib/supabase";
-import type { MessageRow, OnlineUser, Profile } from "@/lib/types";
+import type { MessageRow, OnlineUser, Profile, ReactionRow } from "@/lib/types";
 import { errorCode } from "@/lib/utils";
 import { useChat } from "@/store/chat";
 
@@ -54,6 +55,7 @@ export function useRealtimeRoom(session: Profile) {
         store().applyServerMessage(row);
         if (row.user_id !== userId) store().setTyping(row.username, false);
         void ensureReplies([row]);
+        handleIncoming(row, userId, store().members[userId]?.roleIds ?? [], (r) => void jumpToMessage(r));
       })
       .on("postgres_changes", { event: "UPDATE", schema: "public", table: "messages" }, (payload) => {
         store().applyServerUpdate(payload.new as MessageRow);
@@ -61,6 +63,13 @@ export function useRealtimeRoom(session: Profile) {
       .on("postgres_changes", { event: "DELETE", schema: "public", table: "messages" }, (payload) => {
         const id = (payload.old as Partial<MessageRow>).id;
         if (id) store().removeMessage(id);
+      })
+      .on("postgres_changes", { event: "INSERT", schema: "public", table: "message_reactions" }, (payload) => {
+        store().addReaction(payload.new as ReactionRow);
+      })
+      .on("postgres_changes", { event: "DELETE", schema: "public", table: "message_reactions" }, (payload) => {
+        const old = payload.old as Partial<ReactionRow>;
+        if (old.message_id && old.user_id && old.emoji) store().removeReaction(old as ReactionRow);
       })
       .on("presence", { event: "sync" }, () => {
         const state = channel.presenceState<PresenceMeta>();
@@ -95,6 +104,7 @@ export function useRealtimeRoom(session: Profile) {
     setActiveChannel(channel, { userId, username });
 
     const typingTimer = window.setInterval(() => store().pruneTyping(), 1000);
+    const stopNotifier = initNotifier();
 
     const membersTimer = window.setInterval(() => void refreshMembers(), 3 * 60 * 1000);
 
@@ -129,6 +139,7 @@ export function useRealtimeRoom(session: Profile) {
 
     return () => {
       window.clearInterval(typingTimer);
+      stopNotifier();
       window.clearInterval(heartbeatTimer);
       window.clearInterval(membersTimer);
       document.removeEventListener("visibilitychange", onVisible);

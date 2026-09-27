@@ -123,4 +123,18 @@ export interface GifResult {
   height: number;
 }
 
+export interface ReactionRow {
+  message_id: string;
+  user_id: string;
+  emoji: string;
+}
+
+export interface LiveStatus {
+  live: boolean;
+  videoId: string | null;
+  title: string | null;
+  channelName: string | null;
+  channelUrl: string | null;
+}
+
 export type ConnectionStatus = "connecting" | "connected" | "reconnecting";

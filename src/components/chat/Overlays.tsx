@@ -8,6 +8,7 @@ import { useChat } from "@/store/chat";
 import { Avatar } from "../ui/Avatar";
 import { useEscape } from "../ui/useEscape";
 import { copyText } from "./MessageItem";
+import { QuickReactionRow } from "./Reactions";
 
 /** Long-press / right-click menu for a message. Bottom sheet on mobile, card on desktop. */
 export function MessageActionSheet() {
@@ -56,6 +57,7 @@ export function MessageActionSheet() {
             <p className="line-clamp-2 text-sm text-zinc-400">{message.content || mediaLabel(message.type)}</p>
           </div>
         </div>
+        {!message.status && <QuickReactionRow messageId={message.id} onDone={close} />}
         <div className="space-y-0.5">
           {items.map(({ icon: Icon, label, onClick, danger }) => (
             <button

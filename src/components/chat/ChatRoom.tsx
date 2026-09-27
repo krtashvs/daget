@@ -6,14 +6,17 @@ import { useCallback, useEffect, useRef, useState, type DragEvent } from "react"
 import { validateImageFile } from "@/lib/api";
 import type { Profile } from "@/lib/types";
 import { cn } from "@/lib/utils";
+import { useLiveStatus } from "@/hooks/useLiveStatus";
 import { useRealtimeRoom } from "@/hooks/useRealtimeRoom";
 import { useChat } from "@/store/chat";
 import { ChatHeader } from "./ChatHeader";
 import { Composer } from "./Composer";
 import { MembersPanel } from "./MembersPanel";
 import { MessageList } from "./MessageList";
+import { DesktopLivePane, LiveBanner, MobileLivePlayer } from "./LivePlayer";
 import { DeleteConfirmDialog, Lightbox, MessageActionSheet } from "./Overlays";
 import { ProfileCard } from "./ProfileCard";
+import { ReactionPicker } from "./Reactions";
 import { SearchPanel } from "./SearchPanel";
 
 interface ChatRoomProps {
@@ -24,11 +27,17 @@ interface ChatRoomProps {
 
 export function ChatRoom({ session, gifSearchEnabled, onSignOut }: ChatRoomProps) {
   useRealtimeRoom(session);
+  useLiveStatus();
 
   const panel = useChat((s) => s.panel);
   const setPanel = useChat((s) => s.setPanel);
   const status = useChat((s) => s.status);
   const [headerHeight, setHeaderHeight] = useState(56);
+  const [playerHeight, setPlayerHeight] = useState(0);
+  const watchOpen = useChat((s) => s.watchOpen);
+  const hasVideo = useChat((s) => Boolean(s.live?.videoId));
+  const [isDesktop, setIsDesktop] = useState(false);
+  const watching = watchOpen && hasVideo;
   const [dragging, setDragging] = useState(false);
   const [syncDismissed, setSyncDismissed] = useState(false);
   const showSync = session.needsRoleSync && !syncDismissed;
@@ -39,7 +48,18 @@ export function ChatRoom({ session, gifSearchEnabled, onSignOut }: ChatRoomProps
     if (window.matchMedia("(min-width: 1024px)").matches && useChat.getState().panel === null) setPanel("members");
   }, [setPanel]);
 
+  // One player only: the side pane on wide screens, the top player on phones.
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 1024px)");
+    const update = () => setIsDesktop(mq.matches);
+    update();
+    mq.addEventListener("change", update);
+    return () => mq.removeEventListener("change", update);
+  }, []);
+
   const onHeaderHeight = useCallback((h: number) => setHeaderHeight(h), []);
+  const onPlayerHeight = useCallback((h: number) => setPlayerHeight(h), []);
+  const topInset = headerHeight + (watching && !isDesktop ? playerHeight : 0);
 
   const hasFiles = (e: DragEvent) => Array.from(e.dataTransfer.types).includes("Files");
 
@@ -68,8 +88,9 @@ export function ChatRoom({ session, gifSearchEnabled, onSignOut }: ChatRoomProps
 
   return (
     <div className="flex h-dvh overflow-hidden">
+      {watching && isDesktop && <DesktopLivePane />}
       <section
-        className="relative flex min-w-0 flex-1 flex-col"
+        className={cn("relative flex min-w-0 flex-1 flex-col", watching && isDesktop && "lg:w-[420px] lg:flex-none lg:border-l lg:border-white/[0.06]")}
         onDragEnter={onDragEnter}
         onDragLeave={onDragLeave}
         onDragOver={(e) => hasFiles(e) && e.preventDefault()}
@@ -78,22 +99,18 @@ export function ChatRoom({ session, gifSearchEnabled, onSignOut }: ChatRoomProps
       >
         <ChatHeader onSignOut={onSignOut} onHeight={onHeaderHeight} />
 
-        {status !== "connected" && (
-          <div
-            className="absolute inset-x-0 z-20 flex justify-center px-4"
-            style={{ top: headerHeight + 8 }}
-            role="status"
-          >
-            <div className="glass-strong flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs text-zinc-300 shadow-lg shadow-black/40">
+        {watching && !isDesktop && <MobileLivePlayer top={headerHeight} onHeight={onPlayerHeight} />}
+
+        <div className="pointer-events-none absolute inset-x-0 z-20 flex flex-col items-center gap-2 px-3" style={{ top: topInset + 8 }}>
+          {status !== "connected" && (
+            <div role="status" className="glass-strong flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs text-zinc-300 shadow-lg shadow-black/40">
               <WifiOff className="h-3.5 w-3.5" />
               {status === "reconnecting" ? "Koneksi terputus, menyambung ulang…" : "Menghubungkan…"}
             </div>
-          </div>
-        )}
-
-        {showSync && status === "connected" && (
-          <div className="absolute inset-x-0 z-20 flex justify-center px-3" style={{ top: headerHeight + 8 }}>
-            <div className="glass-strong flex max-w-md animate-slide-up items-center gap-2 rounded-2xl py-2 pl-3.5 pr-1.5 text-[13px] text-zinc-300 shadow-lg shadow-black/40">
+          )}
+          <LiveBanner />
+          {showSync && status === "connected" && (
+            <div className="glass-strong pointer-events-auto flex max-w-md animate-slide-up items-center gap-2 rounded-2xl py-2 pl-3.5 pr-1.5 text-[13px] text-zinc-300 shadow-lg shadow-black/40">
               <span className="min-w-0 flex-1">Sinkronkan role Rizz Academy biar warna namamu sesuai.</span>
               <button
                 type="button"
@@ -106,10 +123,10 @@ export function ChatRoom({ session, gifSearchEnabled, onSignOut }: ChatRoomProps
                 <X className="h-4 w-4" />
               </button>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        <MessageList topInset={headerHeight} />
+        <MessageList topInset={topInset} />
         <Composer gifSearchEnabled={gifSearchEnabled} />
 
         {dragging && (
@@ -140,6 +157,7 @@ export function ChatRoom({ session, gifSearchEnabled, onSignOut }: ChatRoomProps
       <DeleteConfirmDialog />
       <Lightbox />
       <ProfileCard />
+      <ReactionPicker />
     </div>
   );
 }
