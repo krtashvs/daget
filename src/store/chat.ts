@@ -276,7 +276,7 @@ export const useChat = create<ChatState>()((set, get) => ({
       };
     }),
   setReactionTarget: (reactionTarget) => set({ reactionTarget, sheetMessage: null }),
-  setLive: (live) => set((s) => ({ live, watchOpen: live?.live && live.videoId ? s.watchOpen : false })),
+  setLive: (live) => set((s) => ({ live, watchOpen: live && (live.videoId || live.lastVideoId) ? s.watchOpen : false })),
   setWatchOpen: (watchOpen) => set({ watchOpen }),
   setMembers: (list) => set({ members: Object.fromEntries(list.map((m) => [m.id, m])) }),
   setRoleDefs: (roles) => set({ roleDefs: Object.fromEntries(roles.map((r) => [r.id, r])) }),

@@ -8,13 +8,28 @@ function embedUrl(videoId: string) {
   return `https://www.youtube.com/embed/${videoId}?autoplay=1&playsinline=1&rel=0&modestbranding=1`;
 }
 
-function LiveDot() {
+function LiveDot({ replay }: { replay?: boolean }) {
+  if (replay) {
+    return (
+      <span className="inline-flex shrink-0 items-center rounded-md bg-white/10 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-zinc-300">
+        SIARAN ULANG
+      </span>
+    );
+  }
   return (
     <span className="inline-flex shrink-0 items-center gap-1.5 rounded-md bg-red-600 px-1.5 py-0.5 text-[10px] font-bold tracking-wider text-white">
       <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
       LIVE
     </span>
   );
+}
+
+/** What the player should show: the live stream, or the latest stream as a replay. */
+export function usePlayable() {
+  const live = useChat((s) => s.live);
+  if (live?.live && live.videoId) return { videoId: live.videoId, title: live.title ?? "Live", replay: false, channelName: live.channelName };
+  if (live?.lastVideoId) return { videoId: live.lastVideoId, title: live.lastTitle ?? "Siaran ulang", replay: true, channelName: live.channelName };
+  return null;
 }
 
 function Frame({ videoId, title }: { videoId: string; title: string }) {
@@ -31,20 +46,20 @@ function Frame({ videoId, title }: { videoId: string; title: string }) {
 
 /** Desktop: stream pane to the left of the chat. */
 export function DesktopLivePane() {
-  const live = useChat((s) => s.live);
+  const playable = usePlayable();
   const setWatchOpen = useChat((s) => s.setWatchOpen);
-  if (!live?.videoId) return null;
-  const title = live.title ?? "Live";
+  if (!playable) return null;
+  const { videoId, title, replay, channelName } = playable;
   return (
     <section className="flex min-w-0 flex-1 flex-col bg-black" aria-label="Nonton live">
       <div className="flex h-14 shrink-0 items-center gap-3 border-b border-white/[0.06] px-4">
-        <LiveDot />
+        <LiveDot replay={replay} />
         <p className="min-w-0 flex-1 truncate text-sm font-medium text-zinc-200">
-          {live.channelName && <span className="text-zinc-400">{live.channelName} · </span>}
+          {channelName && <span className="text-zinc-400">{channelName} · </span>}
           {title}
         </p>
         <a
-          href={`https://www.youtube.com/watch?v=${live.videoId}`}
+          href={`https://www.youtube.com/watch?v=${videoId}`}
           target="_blank"
           rel="noopener noreferrer"
           className="icon-btn"
@@ -59,7 +74,7 @@ export function DesktopLivePane() {
       </div>
       <div className="flex flex-1 items-center justify-center p-4">
         <div className="aspect-video w-full max-w-[1400px] overflow-hidden rounded-2xl bg-zinc-900 shadow-2xl">
-          <Frame videoId={live.videoId} title={title} />
+          <Frame videoId={videoId} title={title} />
         </div>
       </div>
     </section>
@@ -68,7 +83,7 @@ export function DesktopLivePane() {
 
 /** Mobile: player under the header, collapsible to a slim bar. Reports its height for layout. */
 export function MobileLivePlayer({ top, onHeight }: { top: number; onHeight: (h: number) => void }) {
-  const live = useChat((s) => s.live);
+  const playable = usePlayable();
   const setWatchOpen = useChat((s) => s.setWatchOpen);
   const [minimized, setMinimized] = useState(false);
   const ref = useRef<HTMLDivElement>(null);
@@ -84,17 +99,17 @@ export function MobileLivePlayer({ top, onHeight }: { top: number; onHeight: (h:
     };
   }, [onHeight]);
 
-  if (!live?.videoId) return null;
-  const title = live.title ?? "Live";
+  if (!playable) return null;
+  const { videoId, title, replay } = playable;
 
   return (
     <div ref={ref} className="absolute inset-x-0 z-20 border-b border-white/[0.06] bg-black" style={{ top }}>
       {/* Keep the iframe mounted while minimised so the stream keeps playing. */}
       <div className={minimized ? "h-0 overflow-hidden" : "aspect-video w-full"}>
-        <Frame videoId={live.videoId} title={title} />
+        <Frame videoId={videoId} title={title} />
       </div>
       <div className="flex h-10 items-center gap-2 px-3">
-        <LiveDot />
+        <LiveDot replay={replay} />
         <p className="min-w-0 flex-1 truncate text-xs text-zinc-300">{title}</p>
         <button
           type="button"

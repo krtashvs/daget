@@ -135,6 +135,9 @@ export interface LiveStatus {
   title: string | null;
   channelName: string | null;
   channelUrl: string | null;
+  /** Most recent finished stream (for replays when not live). */
+  lastVideoId?: string | null;
+  lastTitle?: string | null;
 }
 
 export type ConnectionStatus = "connecting" | "connected" | "reconnecting";

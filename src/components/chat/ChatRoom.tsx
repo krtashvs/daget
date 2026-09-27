@@ -35,7 +35,7 @@ export function ChatRoom({ session, gifSearchEnabled, onSignOut }: ChatRoomProps
   const [headerHeight, setHeaderHeight] = useState(56);
   const [playerHeight, setPlayerHeight] = useState(0);
   const watchOpen = useChat((s) => s.watchOpen);
-  const hasVideo = useChat((s) => Boolean(s.live?.videoId));
+  const hasVideo = useChat((s) => Boolean((s.live?.live && s.live.videoId) || s.live?.lastVideoId));
   const [isDesktop, setIsDesktop] = useState(false);
   const watching = watchOpen && hasVideo;
   const [dragging, setDragging] = useState(false);

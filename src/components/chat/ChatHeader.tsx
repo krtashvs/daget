@@ -38,7 +38,8 @@ export function ChatHeader({ onSignOut, onHeight }: ChatHeaderProps) {
       .getState()
       .pushToast(on ? "Notifikasi mention nyala 🔔" : notifyOn ? "Notifikasi mention dimatikan." : "Izin notifikasi ditolak di browser.");
   };
-  const liveVideo = useChat((s) => (s.live?.live ? s.live.videoId : null));
+  const isLive = useChat((s) => Boolean(s.live?.live && s.live.videoId));
+  const hasReplay = useChat((s) => Boolean(s.live?.lastVideoId));
   const watchOpen = useChat((s) => s.watchOpen);
   const menuRef = useRef<HTMLDivElement>(null);
   const headerRef = useRef<HTMLElement>(null);
@@ -80,17 +81,21 @@ export function ChatHeader({ onSignOut, onHeight }: ChatHeaderProps) {
         </div>
 
         <div className="ml-auto flex items-center">
-          {liveVideo && (
+          {(isLive || hasReplay) && (
             <button
               type="button"
               onClick={() => useChat.getState().setWatchOpen(!watchOpen)}
-              className={cn("icon-btn relative w-auto gap-1.5 px-2 text-red-400 hover:text-red-300", watchOpen && "bg-red-500/15")}
-              aria-label={watchOpen ? "Tutup live" : "Nonton live"}
+              className={cn(
+                "icon-btn relative w-auto gap-1.5 px-2",
+                isLive ? "text-red-400 hover:text-red-300" : "",
+                watchOpen && (isLive ? "bg-red-500/15" : "bg-white/[0.08] text-zinc-100"),
+              )}
+              aria-label={watchOpen ? "Tutup player" : isLive ? "Nonton live" : "Nonton siaran ulang"}
               aria-pressed={watchOpen}
-              title="Nonton live"
+              title={isLive ? "Nonton live" : "Nonton siaran ulang"}
             >
               <Tv className="h-5 w-5" />
-              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />
+              {isLive && <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-red-500" />}
             </button>
           )}
           <button

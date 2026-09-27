@@ -203,7 +203,7 @@ Jalankan `supabase/roles_profiles_search.sql` setelah `discord_voice.sql`.
 Jalankan `supabase/reactions_live.sql` setelah `role_mentions.sql`.
 
 - **Deteksi live**: isi `app_settings.youtube_channel` (handle `@nama`, channel id `UC…`, atau link channel — boleh lebih dari satu, pisahkan dengan koma) dan `youtube_name`. Route `/api/live` mengecek halaman `/live` channel tersebut (di-cache ±25 detik di edge; banner & player hilang otomatis ±30–60 detik setelah live selesai). `live_mode`: `auto` (default), `on` (paksa live; isi `live_video_id` bila perlu), `off`.
-- **Banner LIVE** muncul otomatis di atas chat + ikon 📺 di header.
+- **Banner LIVE** muncul otomatis di atas chat hanya saat live. Ikon 📺 di header selalu ada: merah + berkedip saat live; abu-abu di luar live dan membuka **siaran ulang** stream terakhir (diambil dari tab Live channel).
 - **Nonton bareng**: di laptop stream tampil di kiri chat; di HP player di atas chat (bisa dikecilkan tanpa berhenti).
 - **Reaksi emoji**: hover pesan → 😊+ (laptop) atau tekan lama → baris reaksi cepat (HP). Klik reaksi yang sudah ada untuk ikut/batal. Realtime ke semua orang.
 - **Notifikasi mention**: saat tab Daget di belakang dan kamu di-mention (nama, role, atau @everyone): bunyi "ping", judul tab jadi `(N) Daget`, dan notifikasi browser jika diaktifkan (menu ⋯ → Notifikasi mention). Di iPhone notifikasi browser hanya bisa jika Daget ditambahkan ke Home Screen.

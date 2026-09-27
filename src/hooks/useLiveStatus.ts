@@ -19,8 +19,11 @@ export function useLiveStatus() {
         const s = useChat.getState();
         const wasWatching = s.watchOpen && s.live?.live;
         s.setLive(status);
-        // Stream ended: the player closes itself (setLive) — tell the viewer why.
-        if (wasWatching && !status.live) s.pushToast(`Live ${status.channelName ?? ""} sudah selesai 👋`.replace("  ", " "));
+        // Stream ended while watching it live: close the player instead of rolling into the replay.
+        if (wasWatching && !status.live) {
+          s.setWatchOpen(false);
+          s.pushToast(`Live ${status.channelName ?? ""} sudah selesai 👋`.replace("  ", " "));
+        }
       } catch {
         /* keep last known status */
       }
