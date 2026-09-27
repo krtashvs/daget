@@ -1,0 +1,95 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
+}
+
+html,
+body {
+  height: 100%;
+  background: #070708;
+  color: #f4f4f5;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+body {
+  background-image:
+    radial-gradient(1200px 600px at 100% -10%, rgba(255, 255, 255, 0.045), transparent 60%),
+    radial-gradient(900px 500px at -10% 110%, rgba(255, 255, 255, 0.03), transparent 60%);
+  background-attachment: fixed;
+}
+
+::selection {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+@layer components {
+  .glass {
+    @apply border border-white/[0.06] bg-ink-900/70 backdrop-blur-xl backdrop-saturate-150;
+  }
+  .glass-strong {
+    @apply border border-white/[0.08] bg-ink-850/85 backdrop-blur-2xl backdrop-saturate-150;
+  }
+  .icon-btn {
+    @apply inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-xl text-zinc-400 transition-colors hover:bg-white/[0.06] hover:text-zinc-100 active:bg-white/[0.1] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30 disabled:pointer-events-none disabled:opacity-40;
+  }
+}
+
+@layer utilities {
+  .scrollbar-thin {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.12) transparent;
+  }
+  .scrollbar-thin::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+  }
+  .scrollbar-thin::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 999px;
+    border: 2px solid transparent;
+    background-clip: padding-box;
+  }
+  .scrollbar-thin::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .no-scrollbar {
+    scrollbar-width: none;
+  }
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .pb-safe {
+    padding-bottom: max(var(--safe-bottom), 0px);
+  }
+  .pt-safe {
+    padding-top: var(--safe-top);
+  }
+}
+
+/* emoji-picker-react — match the Daget palette */
+.EmojiPickerReact.epr-dark-theme,
+aside.EmojiPickerReact.epr-dark-theme {
+  --epr-bg-color: transparent;
+  --epr-category-label-bg-color: rgba(17, 17, 20, 0.92);
+  --epr-picker-border-color: transparent;
+  --epr-search-input-bg-color: rgba(255, 255, 255, 0.05);
+  --epr-search-input-bg-color-active: rgba(255, 255, 255, 0.08);
+  --epr-search-border-color: rgba(255, 255, 255, 0.18);
+  --epr-hover-bg-color: rgba(255, 255, 255, 0.08);
+  --epr-focus-bg-color: rgba(255, 255, 255, 0.12);
+  --epr-highlight-color: #fafafa;
+  --epr-text-color: #d4d4d8;
+  --epr-category-icon-active-color: #fafafa;
+  --epr-emoji-size: 26px;
+  --epr-picker-border-radius: 0;
+  border: none !important;
+  font-family: inherit !important;
+}
