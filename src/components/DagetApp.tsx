@@ -3,7 +3,8 @@
 import { useCallback, useEffect, useState } from "react";
 import { joinChat } from "@/lib/api";
 import { clearSession, getOrCreateSecret, loadLastUsername, loadSession, saveSession } from "@/lib/session";
-import { isSupabaseConfigured } from "@/lib/supabase";
+import type { PublicConfig } from "@/lib/config";
+import { configureSupabase } from "@/lib/supabase";
 import type { Session } from "@/lib/types";
 import { errorCode, friendlyError } from "@/lib/utils";
 import { useChat } from "@/store/chat";
@@ -14,14 +15,18 @@ import { Toasts } from "./ui/Toasts";
 
 type View = "boot" | "join" | "rename" | "chat";
 
-export function DagetApp({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
+export function DagetApp({ config }: { config: PublicConfig }) {
+  const configured = Boolean(config.supabaseUrl && config.supabaseKey);
+  if (configured) configureSupabase(config.supabaseUrl!, config.supabaseKey!);
+  const gifSearchEnabled = config.gifSearchEnabled;
+
   const session = useChat((s) => s.session);
   const setSession = useChat((s) => s.setSession);
   const [view, setView] = useState<View>("boot");
   const [joinError, setJoinError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!isSupabaseConfigured) return;
+    if (!configured) return;
     const stored = loadSession();
     if (!stored) {
       setView("join");
@@ -45,7 +50,7 @@ export function DagetApp({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
           setView("join");
         }
       });
-  }, [setSession]);
+  }, [configured, setSession]);
 
   const submitUsername = useCallback(
     async (username: string) => {
@@ -60,16 +65,28 @@ export function DagetApp({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
     [setSession],
   );
 
-  if (!isSupabaseConfigured) {
+  if (!configured) {
     return (
       <main className="flex min-h-dvh items-center justify-center p-6">
-        <div className="glass max-w-md rounded-2xl p-6 text-sm text-zinc-300">
-          <p className="mb-2 font-semibold text-zinc-100">Konfigurasi belum lengkap</p>
-          <p>
-            Isi <code className="text-zinc-100">NEXT_PUBLIC_SUPABASE_URL</code> dan{" "}
-            <code className="text-zinc-100">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> pada environment variables, lalu jalankan ulang
-            aplikasi. Lihat README untuk panduan lengkap.
-          </p>
+        <div className="glass w-full max-w-md rounded-2xl p-6 text-sm text-zinc-300">
+          <p className="mb-3 font-semibold text-zinc-100">Konfigurasi belum lengkap</p>
+          <ul className="mb-4 list-disc space-y-1 pl-5 text-red-300/90">
+            {config.problems.map((p) => (
+              <li key={p}>{p}</li>
+            ))}
+          </ul>
+          <ol className="list-decimal space-y-1.5 pl-5 text-zinc-400">
+            <li>
+              Vercel → Project → <b className="text-zinc-200">Settings → Environment Variables</b>.
+            </li>
+            <li>
+              Tambahkan <code className="text-zinc-100">NEXT_PUBLIC_SUPABASE_URL</code> dan{" "}
+              <code className="text-zinc-100">NEXT_PUBLIC_SUPABASE_ANON_KEY</code> (centang Production, Preview, Development).
+            </li>
+            <li>
+              Buka tab <b className="text-zinc-200">Deployments</b> → deployment terbaru → <b className="text-zinc-200">⋯ → Redeploy</b>.
+            </li>
+          </ol>
         </div>
       </main>
     );

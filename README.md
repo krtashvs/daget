@@ -155,7 +155,9 @@ npm run typecheck  # TypeScript
 6. Setelah selesai, buka domain `*.vercel.app` kamu — langsung bisa dipakai.
 
 Catatan:
-- Variabel `NEXT_PUBLIC_*` dan `GIPHY_API_KEY` dibaca saat build. Setelah mengubah env di Vercel, lakukan **Redeploy**.
+- **Setiap kali menambah/mengubah env di Vercel, wajib Redeploy**: tab **Deployments** → deployment terbaru → **⋯ → Redeploy**. Env baru tidak berlaku untuk deployment yang sudah ada.
+- Nama variabel dari integrasi Supabase ↔ Vercel (`SUPABASE_URL`, `SUPABASE_ANON_KEY`, `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`) juga diterima.
+- Jangan pernah mengisi `service_role` / `sb_secret_...` key — aplikasi akan menolaknya.
 - Tidak perlu konfigurasi CORS/redirect di Supabase karena aplikasi tidak memakai Supabase Auth.
 - Pastikan `supabase/schema.sql` sudah dijalankan pada project Supabase yang sama dengan env di Vercel.
 
@@ -163,7 +165,7 @@ Catatan:
 
 | Gejala | Solusi |
 | --- | --- |
-| Muncul "Konfigurasi belum lengkap" | Env Supabase belum terisi / belum redeploy |
+| Muncul "Konfigurasi belum lengkap" | Layar itu menyebut variabel yang kurang. Isi di Vercel → Settings → Environment Variables, lalu **Redeploy** |
 | "Menghubungkan…" terus-menerus | Cek Realtime aktif dan channel publik diizinkan (langkah 3) |
 | Pesan terkirim tapi tidak muncul realtime di tab lain | Pastikan blok `alter publication supabase_realtime add table public.messages` di schema berhasil (Database → Publications) |
 | Upload gambar gagal | Pastikan bucket `chat-media` ada (Storage) dan policy upload dari schema terpasang |

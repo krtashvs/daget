@@ -1,16 +1,19 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
-const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const key = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-
-export const isSupabaseConfigured = Boolean(url && key);
-
+let url: string | null = null;
+let key: string | null = null;
 let client: SupabaseClient | null = null;
 
+/** Called once with the config resolved on the server. */
+export function configureSupabase(nextUrl: string, nextKey: string) {
+  if (url === nextUrl && key === nextKey) return;
+  url = nextUrl;
+  key = nextKey;
+  client = null;
+}
+
 export function getSupabase(): SupabaseClient {
-  if (!url || !key) {
-    throw new Error("Supabase belum dikonfigurasi. Isi NEXT_PUBLIC_SUPABASE_URL dan NEXT_PUBLIC_SUPABASE_ANON_KEY.");
-  }
+  if (!url || !key) throw new Error("Supabase belum dikonfigurasi.");
   if (!client) {
     client = createClient(url, key, {
       auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false },
