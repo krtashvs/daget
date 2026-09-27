@@ -6,6 +6,14 @@ export interface PublicConfig {
   problems: string[];
 }
 
+/**
+ * Public defaults for the Daget Supabase project. These are the publishable
+ * (browser) credentials — safe to ship; all access is guarded by RLS + RPC
+ * checks in supabase/schema.sql. Env vars override them.
+ */
+const DEFAULT_SUPABASE_URL = "https://sfvysgdzqrgppbgyjmtk.supabase.co";
+const DEFAULT_SUPABASE_KEY = "sb_publishable_z25U74JvH70dxDRyMNZjrw_O0ppXZ30";
+
 function firstEnv(...names: string[]): string | null {
   for (const name of names) {
     const value = process.env[name]?.trim();
@@ -32,14 +40,14 @@ function normalizeUrl(raw: string | null): string | null {
  * (anon / publishable) keys are ever read here — never the service role key.
  */
 export function getPublicConfig(): PublicConfig {
-  const rawUrl = firstEnv("NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL");
+  const rawUrl = firstEnv("NEXT_PUBLIC_SUPABASE_URL", "SUPABASE_URL") ?? DEFAULT_SUPABASE_URL;
   const supabaseUrl = normalizeUrl(rawUrl);
   const supabaseKey = firstEnv(
     "NEXT_PUBLIC_SUPABASE_ANON_KEY",
     "NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY",
     "SUPABASE_ANON_KEY",
     "SUPABASE_PUBLISHABLE_KEY",
-  )?.replace(/^["']|["']$/g, "") ?? null;
+  )?.replace(/^["']|["']$/g, "") ?? DEFAULT_SUPABASE_KEY;
 
   const problems: string[] = [];
   if (!rawUrl) problems.push("NEXT_PUBLIC_SUPABASE_URL belum diisi.");

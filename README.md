@@ -107,6 +107,12 @@ Role `anon` hanya boleh `SELECT` tabel `messages`. Tabel `users` sama sekali tid
 
 > Karena tidak ada akun, menghapus data browser (localStorage) berarti kehilangan kepemilikan username di perangkat itu. Username tersebut akan bebas dipakai lagi setelah 30 hari tidak aktif.
 
+## Project Supabase bawaan
+
+Repo ini sudah terhubung ke project Supabase `daget` (`https://sfvysgdzqrgppbgyjmtk.supabase.co`) — schema sudah dijalankan dan URL + publishable key disimpan sebagai default di `src/lib/config.ts`. Jadi **deploy ke Vercel tidak butuh environment variable apa pun**. Key tersebut memang kunci publik untuk browser; keamanan data dijaga RLS + RPC.
+
+Ingin memakai project Supabase lain? Jalankan `supabase/schema.sql` di project itu, lalu isi env di bawah — env selalu mengalahkan default.
+
 ## Menjalankan secara lokal
 
 Prasyarat: Node.js 18.18+ dan akun [Supabase](https://supabase.com) (gratis cukup).
