@@ -1,3 +1,5 @@
+import type { CSSProperties } from "react";
+
 export function cn(...classes: Array<string | false | null | undefined>): string {
   return classes.filter(Boolean).join(" ");
 }
@@ -141,9 +143,28 @@ export function mediaLabel(type: string): string {
   return "Gambar";
 }
 
-/** Name colour: the member's highest Discord role colour, else a stable pastel. */
-export function nameColor(username: string, roleColor?: string | null): string {
-  return roleColor || usernameColor(username);
+export interface RoleColor {
+  color: string;
+  color2?: string | null;
+}
+
+/** Name style: highest Discord role colour (solid or gradient), else a stable pastel. */
+export function nameStyle(username: string, role?: RoleColor | null): CSSProperties {
+  if (role?.color2) {
+    return {
+      backgroundImage: `linear-gradient(90deg, ${role.color}, ${role.color2})`,
+      WebkitBackgroundClip: "text",
+      backgroundClip: "text",
+      WebkitTextFillColor: "transparent",
+      color: role.color,
+    };
+  }
+  return { color: role?.color || usernameColor(username) };
+}
+
+/** Background for a role dot/swatch (solid or gradient). */
+export function swatchStyle(role: RoleColor): CSSProperties {
+  return role.color2 ? { backgroundImage: `linear-gradient(135deg, ${role.color}, ${role.color2})` } : { backgroundColor: role.color };
 }
 
 /** Highest cosmetic role of a member that is known locally. */
@@ -152,12 +173,12 @@ export function topRole<T extends { id: string }>(roleIds: string[] | undefined,
   return undefined;
 }
 
-export function memberColor<T extends { id: string; color: string }>(
+export function memberStyle<T extends { id: string } & RoleColor>(
   username: string,
   roleIds: string[] | undefined,
   defs: Record<string, T>,
-): string {
-  return nameColor(username, topRole(roleIds, defs)?.color);
+): CSSProperties {
+  return nameStyle(username, topRole(roleIds, defs));
 }
 
 /** Account creation time encoded in a Discord snowflake id. */

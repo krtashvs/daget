@@ -3,7 +3,7 @@
 import { X } from "lucide-react";
 import { useMemo } from "react";
 import type { Member, RoleDef } from "@/lib/types";
-import { cn, nameColor, topRole } from "@/lib/utils";
+import { cn, nameStyle, swatchStyle, topRole } from "@/lib/utils";
 import { useChat } from "@/store/chat";
 import { Avatar } from "../ui/Avatar";
 
@@ -41,11 +41,11 @@ export function MembersPanel() {
 
   // Like Discord: online members grouped under their highest role, then plain online, then offline.
   const groups = useMemo(() => {
-    const out: { key: string; title: string; color?: string; list: Row[] }[] = [];
+    const out: { key: string; title: string; top?: RoleDef; list: Row[] }[] = [];
     const ordered = Object.values(roleDefs).sort((a, b) => b.position - a.position);
     for (const role of ordered) {
       const list = rows.filter((r) => r.online && r.top?.id === role.id);
-      if (list.length) out.push({ key: role.id, title: role.name, color: role.color, list });
+      if (list.length) out.push({ key: role.id, title: role.name, top: role, list });
     }
     const plain = rows.filter((r) => r.online && !r.top);
     if (plain.length) out.push({ key: "online", title: "Online", list: plain });
@@ -66,11 +66,11 @@ export function MembersPanel() {
       </div>
       <div className="scrollbar-thin flex-1 overflow-y-auto px-2 pb-4">
         {rows.length === 0 && <p className="px-3 py-6 text-center text-sm text-zinc-500">Menghubungkan…</p>}
-        {groups.map(({ key, title, color, list }) => {
+        {groups.map(({ key, title, top, list }) => {
           return (
             <section key={key} className="mb-3">
               <h3 className="flex items-center gap-1.5 px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                {color && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />}
+                {top && <span className="h-2 w-2 rounded-full" style={swatchStyle(top)} />}
                 {title} — {list.length}
               </h3>
               <ul className="space-y-0.5">
@@ -87,7 +87,7 @@ export function MembersPanel() {
                       <Avatar username={u.username} src={u.avatarUrl} size={32} online={u.online} />
                       <div className="min-w-0 flex-1">
                         <p className="flex items-center gap-1.5 text-sm font-medium">
-                          <span className="truncate" style={{ color: nameColor(u.username, u.top?.color) }}>
+                          <span className="truncate" style={nameStyle(u.username, u.top)}>
                             {u.username}
                           </span>
                           {u.id === myId && <span className="shrink-0 text-xs font-normal text-zinc-500">(kamu)</span>}

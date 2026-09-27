@@ -4,7 +4,7 @@ import { AlertCircle, Copy, CornerUpLeft, ImageOff, LoaderCircle, Reply, RotateC
 import { memo, useCallback, useState } from "react";
 import { deleteMessage, retryMessage } from "@/lib/chat-actions";
 import type { ChatMessage } from "@/lib/types";
-import { cn, formatFull, formatStamp, formatTime, memberColor } from "@/lib/utils";
+import { cn, formatFull, formatStamp, formatTime, memberStyle } from "@/lib/utils";
 import { useLongPress } from "@/hooks/useLongPress";
 import { useSwipeReply } from "@/hooks/useSwipeReply";
 import { useChat } from "@/store/chat";
@@ -37,7 +37,7 @@ export const MessageItem = memo(function MessageItem({ message, grouped, isOwn, 
   const author = useChat((s) => (message.user_id ? s.members[message.user_id] : undefined));
   const roleDefs = useChat((s) => s.roleDefs);
   const authorName = author?.username ?? message.username;
-  const color = memberColor(authorName, author?.roleIds, roleDefs);
+  const authorStyle = memberStyle(authorName, author?.roleIds, roleDefs);
   const openAuthor = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (message.user_id) useChat.getState().openProfile(message.user_id);
@@ -126,7 +126,7 @@ export const MessageItem = memo(function MessageItem({ message, grouped, isOwn, 
                 type="button"
                 onClick={openAuthor}
                 className="min-w-0 truncate text-[15px] font-semibold leading-5 hover:underline"
-                style={{ color }}
+                style={authorStyle}
               >
                 {authorName}
               </button>

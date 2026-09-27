@@ -8,7 +8,7 @@ import { sendGif, sendImage, sendText, sendVoice } from "@/lib/chat-actions";
 import { ALLOWED_IMAGE_ACCEPT, CHANNEL_NAME, MAX_MESSAGE_LENGTH, TYPING_THROTTLE_MS } from "@/lib/constants";
 import { broadcastTyping } from "@/lib/realtime";
 import type { GifResult } from "@/lib/types";
-import { cn, mediaLabel, memberColor, usernameColor } from "@/lib/utils";
+import { cn, mediaLabel, memberStyle, usernameColor } from "@/lib/utils";
 import { MAX_VOICE_MS, useVoiceRecorder, type RecorderError } from "@/hooks/useVoiceRecorder";
 import { useChat } from "@/store/chat";
 import { Avatar } from "../ui/Avatar";
@@ -357,7 +357,7 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
               ) : (
                 <Avatar username={c.username} src={c.avatarUrl} size={24} />
               )}
-              <span className={cn("truncate font-medium", c.special ? "text-amber-200" : "text-zinc-100")} style={c.special ? undefined : { color: memberColor(c.username, c.roleIds, roleDefs) }}>
+              <span className={cn("truncate font-medium", c.special ? "text-amber-200" : "text-zinc-100")} style={c.special ? undefined : memberStyle(c.username, c.roleIds, roleDefs)}>
                 {c.label}
               </span>
               {c.sub && <span className="ml-auto truncate pl-2 text-xs text-zinc-500">{c.sub}</span>}

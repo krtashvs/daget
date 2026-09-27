@@ -5,7 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { getProfile, setMemberBanned, setMemberRole } from "@/lib/api";
 import { refreshMembers } from "@/lib/chat-actions";
 import type { ProfileDetails, Role } from "@/lib/types";
-import { cn, formatLongDate, friendlyError, nameColor, snowflakeDate } from "@/lib/utils";
+import { cn, formatLongDate, friendlyError, nameStyle, snowflakeDate, swatchStyle } from "@/lib/utils";
 import { useChat } from "@/store/chat";
 import { Avatar } from "../ui/Avatar";
 import { useEscape } from "../ui/useEscape";
@@ -128,7 +128,7 @@ export function ProfileCard() {
             <>
               <div className="mt-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-xl font-bold" style={{ color: nameColor(profile.username, profile.discord_roles[0]?.color) }}>
+                  <h2 className="text-xl font-bold" style={nameStyle(profile.username, profile.discord_roles[0])}>
                     {profile.username}
                   </h2>
                   {profile.banned && (
@@ -149,7 +149,7 @@ export function ProfileCard() {
                       key={r.id}
                       className="inline-flex items-center gap-1.5 rounded-lg bg-white/[0.05] px-2 py-1 text-xs font-medium text-zinc-200 ring-1 ring-inset ring-white/[0.06]"
                     >
-                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: r.color }} />
+                      <span className="h-2.5 w-2.5 rounded-full" style={swatchStyle(r)} />
                       {r.name}
                     </span>
                   ))}

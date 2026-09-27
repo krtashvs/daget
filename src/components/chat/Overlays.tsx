@@ -3,7 +3,7 @@
 import { Copy, ExternalLink, ImageIcon, Reply, Trash2, UserRound, X } from "lucide-react";
 import { useCallback } from "react";
 import { deleteMessage } from "@/lib/chat-actions";
-import { formatStamp, mediaLabel, memberColor } from "@/lib/utils";
+import { formatStamp, mediaLabel, memberStyle } from "@/lib/utils";
 import { useChat } from "@/store/chat";
 import { Avatar } from "../ui/Avatar";
 import { useEscape } from "../ui/useEscape";
@@ -46,7 +46,7 @@ export function MessageActionSheet() {
             <p className="flex items-baseline gap-2 text-sm">
               <span
                 className="truncate font-semibold"
-                style={{ color: memberColor(message.username, message.user_id ? members[message.user_id]?.roleIds : undefined, roleDefs) }}
+                style={memberStyle(message.username, message.user_id ? members[message.user_id]?.roleIds : undefined, roleDefs)}
               >
                 {message.username}
               </span>

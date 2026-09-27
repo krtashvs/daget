@@ -245,7 +245,7 @@ export async function listMembers(): Promise<Member[]> {
 }
 
 export async function fetchRoleDefs(): Promise<RoleDef[]> {
-  const { data, error } = await getSupabase().from("discord_roles").select("id,name,color,position").order("position", { ascending: false });
+  const { data, error } = await getSupabase().from("discord_roles").select("id,name,color,color2,position").order("position", { ascending: false });
   if (error) return [];
   return data as RoleDef[];
 }
