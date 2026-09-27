@@ -47,7 +47,7 @@ function decodeJsonString(s: string): string {
 async function detect(path: string): Promise<{ live: boolean; videoId: string | null; title: string | null }> {
   const res = await fetch(`https://www.youtube.com${path}/live`, {
     headers: { "User-Agent": UA, "Accept-Language": "en-US,en;q=0.9", Cookie: "CONSENT=YES+1; SOCS=CAI" },
-    next: { revalidate: 60 },
+    next: { revalidate: 25 },
   });
   if (!res.ok) return { live: false, videoId: null, title: null };
   const html = await res.text();
@@ -108,5 +108,5 @@ export async function GET() {
     if (found) status = { ...base, live: true, videoId: found.videoId, title: found.title, channelUrl: `https://www.youtube.com${found.path}` };
   }
 
-  return NextResponse.json(status, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=60" } });
+  return NextResponse.json(status, { headers: { "Cache-Control": "public, s-maxage=25, stale-while-revalidate=5" } });
 }

@@ -4,9 +4,9 @@ import { useEffect } from "react";
 import type { LiveStatus } from "@/lib/types";
 import { useChat } from "@/store/chat";
 
-const POLL_MS = 60_000;
+const POLL_MS = 30_000;
 
-/** Polls /api/live (cached at the edge for 60 s) and keeps the store in sync. */
+/** Polls /api/live (cached at the edge for ~25 s) and keeps the store in sync. */
 export function useLiveStatus() {
   useEffect(() => {
     let alive = true;
@@ -15,7 +15,12 @@ export function useLiveStatus() {
         const res = await fetch("/api/live", { cache: "no-store" });
         if (!res.ok) return;
         const status = (await res.json()) as LiveStatus;
-        if (alive) useChat.getState().setLive(status);
+        if (!alive) return;
+        const s = useChat.getState();
+        const wasWatching = s.watchOpen && s.live?.live;
+        s.setLive(status);
+        // Stream ended: the player closes itself (setLive) — tell the viewer why.
+        if (wasWatching && !status.live) s.pushToast(`Live ${status.channelName ?? ""} sudah selesai 👋`.replace("  ", " "));
       } catch {
         /* keep last known status */
       }
