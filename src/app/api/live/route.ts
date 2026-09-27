@@ -74,24 +74,38 @@ export async function GET() {
   }
   if (!settings || settings.live_mode === "off") return NextResponse.json(off);
 
-  const path = settings.youtube_channel ? channelPath(settings.youtube_channel) : null;
+  // One or more channels, separated by commas/spaces — the first one that is live wins.
+  const paths = (settings.youtube_channel ?? "")
+    .split(/[\s,]+/)
+    .map(channelPath)
+    .filter((p): p is string => Boolean(p));
   const base: LiveStatus = {
     ...off,
     channelName: settings.youtube_name,
-    channelUrl: path ? `https://www.youtube.com${path}` : null,
+    channelUrl: paths[0] ? `https://www.youtube.com${paths[0]}` : null,
+  };
+
+  const findLive = async () => {
+    const results = await Promise.all(
+      paths.map(async (path) => ({ path, ...(await detect(path).catch(() => ({ live: false, videoId: null, title: null }))) })),
+    );
+    return results.find((r) => r.live) ?? null;
   };
 
   let status: LiveStatus = base;
   if (settings.live_mode === "on") {
     const videoId = settings.live_video_id && /^[\w-]{11}$/.test(settings.live_video_id) ? settings.live_video_id : null;
-    status = { ...base, live: true, videoId };
-    if (!videoId && path) status = { ...base, ...(await detect(path).catch(() => ({})) ), live: true };
-  } else if (path) {
-    try {
-      status = { ...base, ...(await detect(path)) };
-    } catch {
-      status = base;
-    }
+    const found = videoId ? null : await findLive();
+    status = {
+      ...base,
+      live: true,
+      videoId: videoId ?? found?.videoId ?? null,
+      title: found?.title ?? null,
+      channelUrl: found ? `https://www.youtube.com${found.path}` : base.channelUrl,
+    };
+  } else if (paths.length) {
+    const found = await findLive();
+    if (found) status = { ...base, live: true, videoId: found.videoId, title: found.title, channelUrl: `https://www.youtube.com${found.path}` };
   }
 
   return NextResponse.json(status, { headers: { "Cache-Control": "public, s-maxage=60, stale-while-revalidate=60" } });
