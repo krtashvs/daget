@@ -114,6 +114,7 @@ const ERROR_MESSAGES: Record<string, string> = {
   invalid_media: "Media tidak valid.",
   invalid_type: "Jenis pesan tidak valid.",
   not_allowed: "Kamu hanya bisa menghapus pesanmu sendiri.",
+  maintenance: "Daget lagi istirahat sebentar. Coba lagi nanti ya.",
 };
 
 export function errorCode(error: unknown): string | null {

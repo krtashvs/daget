@@ -373,3 +373,78 @@ create policy "daget: upload chat media"
     bucket_id = 'chat-media'
     and lower(storage.extension(name)) in ('jpg', 'jpeg', 'png', 'webp', 'gif')
   );
+
+-- ────────────────────────────────────────────────────────────────────
+--  Mode istirahat (maintenance)
+--  Nyalakan:  update public.app_settings set maintenance = true  where id = 1;
+--  Matikan:   update public.app_settings set maintenance = false where id = 1;
+--  Pesan opsional: update public.app_settings set maintenance_message = '...' where id = 1;
+-- ────────────────────────────────────────────────────────────────────
+
+create table if not exists public.app_settings (
+  id                  int primary key default 1 check (id = 1),
+  maintenance         boolean not null default false,
+  maintenance_message text,
+  updated_at          timestamptz not null default now()
+);
+
+insert into public.app_settings (id) values (1) on conflict (id) do nothing;
+
+alter table public.app_settings enable row level security;
+revoke all on table public.app_settings from anon, authenticated;
+grant select on table public.app_settings to anon, authenticated;
+
+drop policy if exists "app settings are readable by everyone" on public.app_settings;
+create policy "app settings are readable by everyone"
+  on public.app_settings for select
+  to anon, authenticated
+  using (true);
+
+create or replace function public.touch_app_settings()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  new.updated_at := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists app_settings_touch on public.app_settings;
+create trigger app_settings_touch
+  before update on public.app_settings
+  for each row execute function public.touch_app_settings();
+
+-- Selama mode istirahat, tidak ada pesan baru yang bisa masuk.
+create or replace function public.block_messages_during_maintenance()
+returns trigger
+language plpgsql
+set search_path = ''
+as $$
+begin
+  if exists (select 1 from public.app_settings where id = 1 and maintenance) then
+    raise exception 'maintenance';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists messages_maintenance_guard on public.messages;
+create trigger messages_maintenance_guard
+  before insert on public.messages
+  for each row execute function public.block_messages_during_maintenance();
+
+revoke execute on function public.touch_app_settings()                from public, anon, authenticated;
+revoke execute on function public.block_messages_during_maintenance() from public, anon, authenticated;
+
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_tables
+     where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'app_settings'
+  ) then
+    alter publication supabase_realtime add table public.app_settings;
+  end if;
+end;
+$$;

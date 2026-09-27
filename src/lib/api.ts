@@ -137,3 +137,19 @@ export async function fetchMessagesAfter(afterIso: string, limit = 500): Promise
   if (error) throw error;
   return data as MessageRow[];
 }
+
+export interface AppSettings {
+  maintenance: boolean;
+  message: string | null;
+}
+
+/** Global switches (maintenance mode). Missing table/row → app runs normally. */
+export async function fetchAppSettings(): Promise<AppSettings> {
+  const { data, error } = await getSupabase()
+    .from("app_settings")
+    .select("maintenance,maintenance_message")
+    .eq("id", 1)
+    .maybeSingle();
+  if (error || !data) return { maintenance: false, message: null };
+  return { maintenance: Boolean(data.maintenance), message: data.maintenance_message ?? null };
+}

@@ -7,9 +7,11 @@ import type { PublicConfig } from "@/lib/config";
 import { configureSupabase } from "@/lib/supabase";
 import type { Session } from "@/lib/types";
 import { errorCode, friendlyError } from "@/lib/utils";
+import { useAppSettings } from "@/hooks/useAppSettings";
 import { useChat } from "@/store/chat";
 import { ChatRoom } from "./chat/ChatRoom";
 import { JoinScreen } from "./JoinScreen";
+import { MaintenanceScreen } from "./MaintenanceScreen";
 import { Watermark } from "./Watermark";
 import { Toasts } from "./ui/Toasts";
 
@@ -25,6 +27,7 @@ export function DagetApp({ config }: { config: PublicConfig }) {
   const [view, setView] = useState<View>("boot");
   const [joinError, setJoinError] = useState<string | null>(null);
   const kickReason = useChat((s) => s.kickReason);
+  const settings = useAppSettings(configured);
 
   useEffect(() => {
     if (!kickReason) return;
@@ -102,10 +105,19 @@ export function DagetApp({ config }: { config: PublicConfig }) {
     );
   }
 
+  if (settings?.maintenance) {
+    return (
+      <>
+        <MaintenanceScreen message={settings.message} />
+        <Watermark />
+      </>
+    );
+  }
+
   return (
     <>
-      {view === "boot" && <div className="min-h-dvh" />}
-      {(view === "join" || view === "rename") && (
+      {(view === "boot" || !settings) && <div className="min-h-dvh" />}
+      {settings && (view === "join" || view === "rename") && (
         <JoinScreen
           mode={view}
           initialUsername={view === "rename" ? session?.username ?? "" : loadLastUsername()}
@@ -114,7 +126,7 @@ export function DagetApp({ config }: { config: PublicConfig }) {
           onCancel={view === "rename" ? () => setView("chat") : undefined}
         />
       )}
-      {view === "chat" && session && (
+      {settings && view === "chat" && session && (
         <ChatRoom key={`${session.userId}:${session.username}`} session={session} gifSearchEnabled={gifSearchEnabled} onRename={() => setView("rename")} />
       )}
       <Toasts />

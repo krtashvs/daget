@@ -167,6 +167,22 @@ Catatan:
 - Tidak perlu konfigurasi CORS/redirect di Supabase karena aplikasi tidak memakai Supabase Auth.
 - Pastikan `supabase/schema.sql` sudah dijalankan pada project Supabase yang sama dengan env di Vercel.
 
+## Mode istirahat (maintenance)
+
+Untuk menghentikan chat sementara tanpa menghapus data:
+
+1. Supabase Dashboard → **Table Editor** → tabel `app_settings`.
+2. Ubah kolom `maintenance` menjadi `true` (opsional: isi `maintenance_message`) → **Save**.
+
+Semua pengunjung langsung melihat layar "Lagi istirahat" dan pesan baru ditolak di database. Ubah kembali ke `false` untuk menyalakan lagi — aplikasi terbuka otomatis kembali normal.
+
+Atau lewat SQL Editor:
+
+```sql
+update public.app_settings set maintenance = true  where id = 1;  -- matikan sementara
+update public.app_settings set maintenance = false where id = 1;  -- nyalakan lagi
+```
+
 ## Troubleshooting
 
 | Gejala | Solusi |
