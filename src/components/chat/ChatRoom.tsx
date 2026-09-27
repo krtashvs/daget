@@ -12,6 +12,7 @@ import { Composer } from "./Composer";
 import { MembersPanel } from "./MembersPanel";
 import { MessageList } from "./MessageList";
 import { DeleteConfirmDialog, Lightbox, MessageActionSheet } from "./Overlays";
+import { ProfileCard } from "./ProfileCard";
 import { SearchPanel } from "./SearchPanel";
 
 interface ChatRoomProps {
@@ -117,6 +118,7 @@ export function ChatRoom({ session, gifSearchEnabled, onSignOut }: ChatRoomProps
       <MessageActionSheet />
       <DeleteConfirmDialog />
       <Lightbox />
+      <ProfileCard />
     </div>
   );
 }

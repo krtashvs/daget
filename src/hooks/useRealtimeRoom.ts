@@ -2,7 +2,7 @@
 
 import { useEffect } from "react";
 import { touchMember } from "@/lib/api";
-import { ensureReplies, syncMessages } from "@/lib/chat-actions";
+import { ensureReplies, refreshMembers, syncMessages } from "@/lib/chat-actions";
 import { HEARTBEAT_MS, ROOM_CHANNEL } from "@/lib/constants";
 import { setActiveChannel } from "@/lib/realtime";
 import { getSupabase } from "@/lib/supabase";
@@ -39,6 +39,7 @@ export function useRealtimeRoom(session: Profile) {
 
     store().resetRoom();
     void syncMessages();
+    void refreshMembers();
 
     const channel = supabase.channel(ROOM_CHANNEL, {
       config: {
@@ -71,6 +72,8 @@ export function useRealtimeRoom(session: Profile) {
         }
         users.sort((a, b) => a.username.localeCompare(b.username, "id", { sensitivity: "base" }));
         store().setOnline(users);
+        // Someone new showed up — pull their role/handle into the directory.
+        if (users.some((u) => !store().members[u.userId])) void refreshMembers();
       })
       .on("broadcast", { event: "typing" }, ({ payload }) => {
         const p = payload as TypingPayload;
@@ -93,12 +96,14 @@ export function useRealtimeRoom(session: Profile) {
 
     const typingTimer = window.setInterval(() => store().pruneTyping(), 1000);
 
+    const membersTimer = window.setInterval(() => void refreshMembers(), 3 * 60 * 1000);
+
     const heartbeat = () => {
       if (document.visibilityState !== "visible") return;
       touchMember(authId)
         .then((profile) => {
           const current = store().session;
-          if (current && (profile.username !== current.username || profile.isAdmin !== current.isAdmin)) {
+          if (current && (profile.username !== current.username || profile.role !== current.role)) {
             store().setSession(profile);
           }
         })
@@ -125,6 +130,7 @@ export function useRealtimeRoom(session: Profile) {
     return () => {
       window.clearInterval(typingTimer);
       window.clearInterval(heartbeatTimer);
+      window.clearInterval(membersTimer);
       document.removeEventListener("visibilitychange", onVisible);
       window.removeEventListener("online", onOnline);
       setActiveChannel(null, null);

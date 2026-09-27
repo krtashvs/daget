@@ -6,6 +6,7 @@ import {
   fetchMessagesBetween,
   fetchLatestMessages,
   fetchReplyPreviews,
+  listMembers,
   postMessage,
   removeMessage,
   uploadMedia,
@@ -216,4 +217,18 @@ export async function deleteMessage(id: string) {
     store().mergeMessages([message]);
     store().pushToast(friendlyError(error, "Gagal menghapus pesan."));
   }
+}
+
+let membersLoading: Promise<void> | null = null;
+
+/** Refresh the member directory (roles, @handles, avatars). */
+export function refreshMembers(): Promise<void> {
+  if (membersLoading) return membersLoading;
+  membersLoading = listMembers()
+    .then((list) => store().setMembers(list))
+    .catch(() => undefined)
+    .finally(() => {
+      membersLoading = null;
+    });
+  return membersLoading;
 }

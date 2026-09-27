@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ChatMessage, ConnectionStatus, MessageRow, OnlineUser, Profile, ReplyPreview } from "@/lib/types";
+import type { ChatMessage, ConnectionStatus, Member, MessageRow, OnlineUser, Profile, ReplyPreview } from "@/lib/types";
 import { compareMessages } from "@/lib/utils";
 import { TYPING_TTL_MS } from "@/lib/constants";
 
@@ -40,6 +40,12 @@ interface ChatState {
   /** Message awaiting delete confirmation. */
   deleteTarget: ChatMessage | null;
   lightboxUrl: string | null;
+  /** Member directory keyed by user id (roles, handles, avatars). */
+  members: Record<string, Member>;
+  /** User whose profile card is open. */
+  profileUserId: string | null;
+  /** Filters to apply when the search panel opens (e.g. from a profile card). */
+  searchPreset: { from?: string | null; mentions?: string | null } | null;
   /** Set when this browser lost its username; the app returns to the join screen. */
   kickReason: string | null;
 
@@ -76,6 +82,10 @@ interface ChatState {
   setDeleteTarget: (message: ChatMessage | null) => void;
   setLightboxUrl: (url: string | null) => void;
   setKickReason: (reason: string | null) => void;
+  setMembers: (members: Member[]) => void;
+  openProfile: (userId: string | null) => void;
+  openSearchWith: (preset: { from?: string | null; mentions?: string | null }) => void;
+  clearSearchPreset: () => void;
 
   resetRoom: () => void;
 }
@@ -110,6 +120,9 @@ export const useChat = create<ChatState>()((set, get) => ({
   ...initialRoom,
   panel: null,
   kickReason: null,
+  members: {},
+  profileUserId: null,
+  searchPreset: null,
   scrollToBottomTick: 0,
   toasts: [],
 
@@ -216,6 +229,10 @@ export const useChat = create<ChatState>()((set, get) => ({
   setDeleteTarget: (deleteTarget) => set({ deleteTarget }),
   setLightboxUrl: (lightboxUrl) => set({ lightboxUrl }),
   setKickReason: (kickReason) => set({ kickReason }),
+  setMembers: (list) => set({ members: Object.fromEntries(list.map((m) => [m.id, m])) }),
+  openProfile: (profileUserId) => set({ profileUserId, sheetMessage: null }),
+  openSearchWith: (preset) => set({ searchPreset: preset, panel: "search", profileUserId: null }),
+  clearSearchPreset: () => set({ searchPreset: null }),
 
   resetRoom: () => {
     for (const m of get().messages) if (m.localPreview) URL.revokeObjectURL(m.localPreview);

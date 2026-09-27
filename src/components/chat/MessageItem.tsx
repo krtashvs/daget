@@ -4,7 +4,8 @@ import { AlertCircle, Copy, CornerUpLeft, ImageOff, LoaderCircle, Reply, RotateC
 import { memo, useCallback, useState } from "react";
 import { deleteMessage, retryMessage } from "@/lib/chat-actions";
 import type { ChatMessage } from "@/lib/types";
-import { cn, formatFull, formatStamp, formatTime, usernameColor } from "@/lib/utils";
+import { cn, formatFull, formatStamp, formatTime, nameColor } from "@/lib/utils";
+import { RoleBadge } from "../ui/RoleBadge";
 import { useLongPress } from "@/hooks/useLongPress";
 import { useSwipeReply } from "@/hooks/useSwipeReply";
 import { useChat } from "@/store/chat";
@@ -20,6 +21,7 @@ interface MessageItemProps {
   /** Admins may delete anyone's message. */
   canModerate: boolean;
   me: string;
+  myId: string;
   highlighted: boolean;
 }
 
@@ -32,13 +34,21 @@ export async function copyText(text: string) {
   }
 }
 
-export const MessageItem = memo(function MessageItem({ message, grouped, isOwn, canModerate, me, highlighted }: MessageItemProps) {
+export const MessageItem = memo(function MessageItem({ message, grouped, isOwn, canModerate, me, myId, highlighted }: MessageItemProps) {
+  const author = useChat((s) => (message.user_id ? s.members[message.user_id] : undefined));
+  const role = author?.role;
+  const openAuthor = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (message.user_id) useChat.getState().openProfile(message.user_id);
+  };
   const openSheet = useCallback(() => useChat.getState().setSheetMessage(message), [message]);
   const longPress = useLongPress(openSheet);
   const startReply = useCallback(() => useChat.getState().setReplyingTo(message), [message]);
   const swipe = useSwipeReply(startReply, !message.status);
   const canDelete = isOwn || canModerate;
-  const mentioned = !isOwn && mentionsUser(message.content, me);
+  const everyone = Boolean(message.mention_everyone);
+  const mentioned =
+    !isOwn && !everyone && (Boolean(message.mentions?.includes(myId)) || (!message.mentions?.length && mentionsUser(message.content, me)));
   const media = message.localPreview ?? message.media_url;
   const [broken, setBroken] = useState(false);
 
@@ -55,6 +65,7 @@ export const MessageItem = memo(function MessageItem({ message, grouped, isOwn, 
       className={cn(
         "group relative touch-pan-y px-4 [-webkit-touch-callout:none] hover:bg-white/[0.025]",
         grouped ? "py-0.5" : "pb-0.5 pt-3",
+        everyone && "bg-amber-300/[0.05] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:rounded-r before:bg-amber-300/80",
         mentioned && "bg-white/[0.035] before:absolute before:inset-y-0 before:left-0 before:w-[3px] before:rounded-r before:bg-zinc-200/70",
         highlighted && "animate-highlight",
       )}
@@ -102,22 +113,30 @@ export const MessageItem = memo(function MessageItem({ message, grouped, isOwn, 
             {formatTime(message.created_at)}
           </time>
         ) : (
-          <Avatar username={message.username} src={message.avatar_url} size={40} className="mt-0.5" />
+          <button type="button" onClick={openAuthor} className="mt-0.5 shrink-0 self-start rounded-full transition hover:opacity-85" aria-label={`Profil ${message.username}`}>
+            <Avatar username={message.username} src={author?.avatarUrl ?? message.avatar_url} size={40} />
+          </button>
         )}
 
         <div className={cn("min-w-0 flex-1", message.status === "sending" && "opacity-60")}>
           {!grouped && (
             <div className="flex min-w-0 items-baseline gap-2">
-              <span className="truncate text-[15px] font-semibold leading-5" style={{ color: usernameColor(message.username) }}>
-                {message.username}
-              </span>
+              <button
+                type="button"
+                onClick={openAuthor}
+                className="min-w-0 truncate text-[15px] font-semibold leading-5 hover:underline"
+                style={{ color: nameColor(author?.username ?? message.username, role) }}
+              >
+                {author?.username ?? message.username}
+              </button>
+              <RoleBadge role={role} className="self-center" />
               <time dateTime={message.created_at} title={formatFull(message.created_at)} className="shrink-0 text-[11px] text-zinc-500">
                 {formatStamp(message.created_at)}
               </time>
             </div>
           )}
 
-          <MessageContent content={message.content} me={me} />
+          <MessageContent content={message.content} me={me} myId={myId} everyone={everyone} />
 
           {message.type === "voice" && media && (
             <VoiceNote id={message.id} src={media} durationMs={message.duration_ms} sending={message.status === "sending"} />

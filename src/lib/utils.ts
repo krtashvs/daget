@@ -110,6 +110,9 @@ const ERROR_MESSAGES: Record<string, string> = {
   not_verified: "Akun Discord kamu belum terverifikasi. Masuk lagi ya.",
   not_signed_in: "Sesi kamu berakhir. Masuk lagi dengan Discord.",
   banned: "Akun kamu diblokir dari Daget oleh admin.",
+  cannot_change_self: "Kamu tidak bisa mengubah role/status dirimu sendiri.",
+  invalid_role: "Role tidak valid.",
+  not_found: "Anggota tidak ditemukan.",
 };
 
 export function errorCode(error: unknown): string | null {
@@ -136,4 +139,30 @@ export function mediaLabel(type: string): string {
   if (type === "voice") return "Pesan suara";
   if (type === "gif") return "GIF";
   return "Gambar";
+}
+
+/** Role colours (Discord-style). Members keep their per-name pastel colour. */
+export const ROLE_COLORS = { admin: "#fbbf24", mod: "#7dd3fc" } as const;
+
+export function nameColor(username: string, role?: string | null): string {
+  if (role === "admin") return ROLE_COLORS.admin;
+  if (role === "mod") return ROLE_COLORS.mod;
+  return usernameColor(username);
+}
+
+/** Account creation time encoded in a Discord snowflake id. */
+export function snowflakeDate(id: string | null | undefined): string | null {
+  if (!id || !/^\d{15,21}$/.test(id)) return null;
+  try {
+    const ms = Number((BigInt(id) >> BigInt(22)) + BigInt(1420070400000));
+    return new Date(ms).toISOString();
+  } catch {
+    return null;
+  }
+}
+
+const longDateFmt = new Intl.DateTimeFormat("id-ID", { day: "numeric", month: "short", year: "numeric" });
+
+export function formatLongDate(iso: string | null | undefined): string {
+  return iso ? longDateFmt.format(new Date(iso)) : "—";
 }

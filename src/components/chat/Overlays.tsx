@@ -1,6 +1,6 @@
 "use client";
 
-import { Copy, ExternalLink, ImageIcon, Reply, Trash2, X } from "lucide-react";
+import { Copy, ExternalLink, ImageIcon, Reply, Trash2, UserRound, X } from "lucide-react";
 import { useCallback } from "react";
 import { deleteMessage } from "@/lib/chat-actions";
 import { formatStamp, mediaLabel, usernameColor } from "@/lib/utils";
@@ -13,7 +13,7 @@ import { copyText } from "./MessageItem";
 export function MessageActionSheet() {
   const message = useChat((s) => s.sheetMessage);
   const myId = useChat((s) => s.session?.userId);
-  const isAdmin = useChat((s) => s.session?.isAdmin ?? false);
+  const isAdmin = useChat((s) => s.session?.role === "admin" || s.session?.role === "mod");
   const close = useCallback(() => useChat.getState().setSheetMessage(null), []);
   useEscape(Boolean(message), close);
   if (!message) return null;
@@ -27,6 +27,7 @@ export function MessageActionSheet() {
 
   const items = [
     !message.status && { icon: Reply, label: "Balas", onClick: act(() => useChat.getState().setReplyingTo(message)) },
+    message.user_id && { icon: UserRound, label: "Lihat Profil", onClick: () => useChat.getState().openProfile(message.user_id) },
     message.content && { icon: Copy, label: "Salin Teks", onClick: act(() => void copyText(message.content)) },
     media && message.type !== "voice" && { icon: ImageIcon, label: message.type === "gif" ? "Lihat GIF" : "Lihat Gambar", onClick: act(() => useChat.getState().setLightboxUrl(media)) },
     (isOwn || (isAdmin && !message.status)) && { icon: Trash2, label: "Hapus Pesan", danger: true, onClick: act(() => useChat.getState().setDeleteTarget(message)) },

@@ -1,15 +1,17 @@
 import { getSupabase } from "./supabase";
 import { ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, MEDIA_BUCKET, PAGE_SIZE } from "./constants";
-import type { MessageRow, MessageType, Profile, ReplyPreview } from "./types";
+import type { Member, MessageRow, MessageType, Profile, ProfileDetails, ReplyPreview, Role } from "./types";
 import { uuid } from "./utils";
 
-const MESSAGE_COLUMNS = "id,user_id,username,content,type,media_url,reply_to,created_at,avatar_url,author_handle,duration_ms";
+const MESSAGE_COLUMNS =
+  "id,user_id,username,content,type,media_url,reply_to,created_at,avatar_url,author_handle,duration_ms,mentions,mention_everyone";
 
 interface MemberRow {
   id: string;
   username: string;
   avatar_url: string | null;
   discord_username: string | null;
+  role?: Role;
   is_admin: boolean;
 }
 
@@ -20,7 +22,8 @@ function toProfile(row: MemberRow, authId: string): Profile {
     username: row.username,
     avatarUrl: row.avatar_url,
     handle: row.discord_username,
-    isAdmin: Boolean(row.is_admin),
+    role: row.role ?? (row.is_admin ? "admin" : "member"),
+    isAdmin: row.role ? row.role === "admin" : Boolean(row.is_admin),
   };
 }
 
@@ -211,4 +214,65 @@ export async function fetchAppSettings(): Promise<AppSettings> {
     guildName: data.discord_guild_name ?? null,
     inviteUrl: data.discord_invite_url ?? null,
   };
+}
+
+interface MemberListRow {
+  id: string;
+  username: string;
+  discord_username: string | null;
+  avatar_url: string | null;
+  role: Role;
+  banned: boolean;
+  last_seen: string;
+}
+
+export async function listMembers(): Promise<Member[]> {
+  const { data, error } = await getSupabase().rpc("list_members");
+  if (error) throw error;
+  return (data as MemberListRow[]).map((m) => ({
+    id: m.id,
+    username: m.username,
+    handle: m.discord_username,
+    avatarUrl: m.avatar_url,
+    role: m.role,
+    banned: m.banned,
+    lastSeen: m.last_seen,
+  }));
+}
+
+export async function getProfile(id: string): Promise<ProfileDetails> {
+  const { data, error } = await getSupabase().rpc("get_profile", { p_id: id });
+  if (error) throw error;
+  return data as ProfileDetails;
+}
+
+export async function setMemberRole(id: string, role: Role): Promise<void> {
+  const { error } = await getSupabase().rpc("set_member_role", { p_id: id, p_role: role });
+  if (error) throw error;
+}
+
+export async function setMemberBanned(id: string, banned: boolean): Promise<void> {
+  const { error } = await getSupabase().rpc("set_member_banned", { p_id: id, p_banned: banned });
+  if (error) throw error;
+}
+
+export type SearchHas = "media" | "image" | "gif" | "voice" | "link";
+
+export interface SearchFilters {
+  query?: string;
+  from?: string | null;
+  mentions?: string | null;
+  has?: SearchHas | null;
+}
+
+export async function searchMessagesAdvanced(filters: SearchFilters): Promise<MessageRow[]> {
+  const { data, error } = await getSupabase().rpc("search_messages_v2", {
+    p_query: filters.query?.trim() || null,
+    p_from: filters.from ?? null,
+    p_mentions: filters.mentions ?? null,
+    p_has: filters.has ?? null,
+    p_limit: 60,
+  });
+  if (error) throw error;
+  return data as MessageRow[];
 }

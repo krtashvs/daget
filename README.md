@@ -185,6 +185,18 @@ Setup (sekali):
 4. Jalankan `supabase/discord_voice.sql` (setelah `schema.sql`) dan deploy Edge Function `discord-verify`.
 5. Isi tabel `app_settings`: `discord_guild_id` (Server ID), opsional `discord_role_id`, `discord_guild_name`, `discord_invite_url`, lalu set `require_discord = true`.
 
+## Role, profil, mention & pencarian
+
+Jalankan `supabase/roles_profiles_search.sql` setelah `discord_voice.sql`.
+
+- **Role**: `member`, `mod` (Moderator), `admin`. Warna nama: Admin emas, Moderator biru, anggota biasa punya warna pastel otomatis dari namanya. Badge ADMIN/MOD tampil di samping nama.
+  - Admin: hapus pesan siapa pun, jadikan/cabut Moderator atau Admin, blokir anggota.
+  - Moderator: hapus pesan siapa pun, blokir anggota biasa.
+  - Diatur dari kartu profil (klik foto/nama seseorang → Moderasi). Admin tidak bisa mengubah role dirinya sendiri; Admin/Moderator harus diturunkan dulu sebelum bisa diblokir.
+- **Kartu profil**: klik foto atau nama → banner, foto, nama, @username Discord, role, tanggal akun Discord dibuat / join server / join Daget, jumlah pesan, tombol ke profil Discord asli, "Pesannya", "Yang menyebut", dan "Mention". Banner & tanggal join server diambil saat login Discord (anggota lama perlu login ulang agar terisi).
+- **Mention**: ketik `@` untuk memilih anggota (disimpan sebagai @username Discord, ditampilkan sebagai nama). `@everyone` / `@here` hanya berlaku jika dikirim Admin/Moderator — pesannya di-highlight kuning untuk semua orang.
+- **Search by**: panel cari punya filter **Dari** (pengirim), **Menyebut** (anggota yang di-mention), dan **Jenis** (semua media, gambar, GIF, pesan suara, link) — bisa digabung dengan kata kunci.
+
 ## Voice note & balas dengan swipe
 
 - Tombol 🎤 muncul saat kolom pesan kosong: ketuk untuk merekam (maks. 2 menit), ketuk kirim atau 🗑 untuk batal. Rekaman memakai MP4/AAC jika browser mendukung (diputar di semua perangkat), selain itu WebM/Opus.

@@ -1,14 +1,28 @@
-import { Fragment, memo, type ReactNode } from "react";
-import { cn, isEmojiOnly } from "@/lib/utils";
+"use client";
 
-const TOKEN = /(https?:\/\/[^\s<]+[^\s<.,:;"')\]!?])|(@[A-Za-z0-9_.-]{2,24})/g;
+import { Fragment, memo, useMemo, type ReactNode } from "react";
+import type { Member } from "@/lib/types";
+import { cn, isEmojiOnly } from "@/lib/utils";
+import { useChat } from "@/store/chat";
+
+const TOKEN = /(https?:\/\/[^\s<]+[^\s<.,:;"')\]!?])|(@[A-Za-z0-9_.-]{2,32})/g;
 
 interface MessageContentProps {
   content: string;
   me: string;
+  myId: string;
+  /** Message was sent by staff with @everyone/@here. */
+  everyone?: boolean;
 }
 
-export const MessageContent = memo(function MessageContent({ content, me }: MessageContentProps) {
+export const MessageContent = memo(function MessageContent({ content, me, myId, everyone }: MessageContentProps) {
+  const members = useChat((s) => s.members);
+  const byHandle = useMemo(() => {
+    const map = new Map<string, Member>();
+    for (const m of Object.values(members)) if (m.handle) map.set(m.handle.toLowerCase(), m);
+    return map;
+  }, [members]);
+
   if (!content) return null;
   const jumbo = isEmojiOnly(content);
   const meLower = me.toLowerCase();
@@ -33,15 +47,41 @@ export const MessageContent = memo(function MessageContent({ content, me }: Mess
       );
     } else if (mention) {
       const handle = mention.slice(1).toLowerCase();
-      const isMe = handle === meLower || meLower.startsWith(`${handle} `);
-      parts.push(
-        <span
-          key={index}
-          className={cn("rounded-md px-1 py-px font-medium", isMe ? "bg-white/20 text-white" : "bg-white/[0.08] text-zinc-100")}
-        >
-          {token}
-        </span>,
-      );
+      const member = byHandle.get(handle);
+      if (handle === "everyone" || handle === "here") {
+        parts.push(
+          <span
+            key={index}
+            className={cn("rounded-md px-1 py-px font-medium", everyone ? "bg-amber-300/20 text-amber-200" : "text-zinc-300")}
+          >
+            {token}
+          </span>,
+        );
+      } else if (member) {
+        parts.push(
+          <button
+            key={index}
+            type="button"
+            onClick={(e) => {
+              e.stopPropagation();
+              useChat.getState().openProfile(member.id);
+            }}
+            className={cn(
+              "rounded-md px-1 py-px font-medium transition",
+              member.id === myId ? "bg-white/20 text-white" : "bg-white/[0.08] text-zinc-100 hover:bg-white/[0.14]",
+            )}
+          >
+            @{member.username}
+          </button>,
+        );
+      } else {
+        const isMe = handle === meLower || meLower.startsWith(`${handle} `);
+        parts.push(
+          <span key={index} className={cn("rounded-md px-1 py-px font-medium", isMe ? "bg-white/20 text-white" : "bg-white/[0.08] text-zinc-100")}>
+            {token}
+          </span>,
+        );
+      }
     }
     last = index + token.length;
   }

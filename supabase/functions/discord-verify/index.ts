@@ -14,10 +14,26 @@ function json(body: unknown, status = 200) {
   return new Response(JSON.stringify(body), { status, headers: { ...cors, "Content-Type": "application/json" } });
 }
 
+function isHidden(code: number): boolean {
+  // Control characters, zero-width and bidi-override characters.
+  return (
+    code < 0x20 ||
+    (code >= 0x7f && code <= 0x9f) ||
+    (code >= 0x200b && code <= 0x200f) ||
+    (code >= 0x202a && code <= 0x202e) ||
+    (code >= 0x2066 && code <= 0x2069)
+  );
+}
+
 function cleanName(raw: string): string {
-  // Buang karakter kontrol, rapikan spasi, batasi 32 karakter.
-  const name = raw.replace(/[\u0000-\u001f\u007f-\u009f\u200b-\u200f\u202a-\u202e\u2066-\u2069]/g, "").replace(/\s+/g, " ").trim();
+  const visible = Array.from(raw).filter((ch) => !isHidden(ch.codePointAt(0) ?? 0)).join("");
+  const name = visible.replace(/\s+/g, " ").trim();
   return Array.from(name).slice(0, 32).join("") || "Anggota";
+}
+
+function cdnImage(path: string, hash: string, size: number): string {
+  const ext = hash.startsWith("a_") ? "gif" : "png";
+  return `https://cdn.discordapp.com/${path}/${hash}.${ext}?size=${size}`;
 }
 
 Deno.serve(async (req) => {
@@ -53,9 +69,11 @@ Deno.serve(async (req) => {
   const guildId = settings?.discord_guild_id;
   if (!guildId) return json({ ok: false, reason: "guild_not_configured" });
 
-  const res = await fetch(`https://discord.com/api/v10/users/@me/guilds/${guildId}/member`, {
-    headers: { Authorization: `Bearer ${providerToken}` },
-  });
+  const discordHeaders = { Authorization: `Bearer ${providerToken}` };
+  const [res, meRes] = await Promise.all([
+    fetch(`https://discord.com/api/v10/users/@me/guilds/${guildId}/member`, { headers: discordHeaders }),
+    fetch("https://discord.com/api/v10/users/@me", { headers: discordHeaders }),
+  ]);
   if (res.status === 401) return json({ ok: false, reason: "reauth_required" });
   if (res.status === 429) return json({ ok: false, reason: "rate_limited" });
   if (res.status === 404 || res.status === 403) {
@@ -72,11 +90,18 @@ Deno.serve(async (req) => {
     return json({ ok: false, reason: "missing_role", guild: settings?.discord_guild_name, invite: settings?.discord_invite_url });
   }
 
+  const me = meRes.ok ? await meRes.json() : {};
   const avatarUrl = member.avatar
-    ? `https://cdn.discordapp.com/guilds/${guildId}/users/${discordId}/avatars/${member.avatar}.png?size=128`
+    ? cdnImage(`guilds/${guildId}/users/${discordId}/avatars`, member.avatar, 128)
     : member.user.avatar
-      ? `https://cdn.discordapp.com/avatars/${discordId}/${member.user.avatar}.png?size=128`
+      ? cdnImage(`avatars/${discordId}`, member.user.avatar, 128)
       : null;
+  const bannerHash = member.banner ?? me.banner ?? member.user.banner ?? null;
+  const bannerUrl = !bannerHash
+    ? null
+    : member.banner
+      ? cdnImage(`guilds/${guildId}/users/${discordId}/banners`, bannerHash, 600)
+      : cdnImage(`banners/${discordId}`, bannerHash, 600);
 
   const profile = {
     auth_id: user.id,
@@ -84,6 +109,9 @@ Deno.serve(async (req) => {
     discord_username: String(member.user.username ?? ""),
     username: cleanName(member.nick || member.user.global_name || member.user.username || "Anggota"),
     avatar_url: avatarUrl,
+    banner_url: bannerUrl,
+    accent_color: typeof me.accent_color === "number" ? me.accent_color : null,
+    guild_joined_at: member.joined_at ?? null,
     verified_at: new Date().toISOString(),
     last_seen: new Date().toISOString(),
   };
@@ -95,7 +123,7 @@ Deno.serve(async (req) => {
     .or(`auth_id.eq.${user.id},discord_id.eq.${discordId}`)
     .limit(1)
     .maybeSingle();
-  const columns = "id, username, avatar_url, discord_username, is_admin, banned";
+  const columns = "id, username, avatar_url, discord_username, role, is_admin, banned";
   const { data: row, error } = existing
     ? await admin.from("users").update(profile).eq("id", existing.id).select(columns).single()
     : await admin.from("users").insert(profile).select(columns).single();

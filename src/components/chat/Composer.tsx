@@ -1,14 +1,14 @@
 "use client";
 
-import { ImagePlay, LoaderCircle, Mic, Plus, SendHorizontal, Smile, Trash2, X } from "lucide-react";
+import { AtSign, ImagePlay, LoaderCircle, Mic, Plus, SendHorizontal, Smile, Trash2, X } from "lucide-react";
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useMemo, useRef, useState, type ChangeEvent, type KeyboardEvent } from "react";
 import { validateImageFile } from "@/lib/api";
 import { sendGif, sendImage, sendText, sendVoice } from "@/lib/chat-actions";
 import { ALLOWED_IMAGE_ACCEPT, CHANNEL_NAME, MAX_MESSAGE_LENGTH, TYPING_THROTTLE_MS } from "@/lib/constants";
 import { broadcastTyping } from "@/lib/realtime";
-import type { GifResult } from "@/lib/types";
-import { cn, mediaLabel, usernameColor } from "@/lib/utils";
+import type { GifResult, Role } from "@/lib/types";
+import { cn, mediaLabel, nameColor, usernameColor } from "@/lib/utils";
 import { MAX_VOICE_MS, useVoiceRecorder, type RecorderError } from "@/hooks/useVoiceRecorder";
 import { useChat } from "@/store/chat";
 import { Avatar } from "../ui/Avatar";
@@ -26,7 +26,19 @@ const EmojiPanel = dynamic(() => import("./EmojiPanel"), {
 
 type Picker = "emoji" | "gif" | null;
 
-const MENTION_QUERY = /(^|\s)@([A-Za-z0-9_.-]{0,24})$/;
+const MENTION_QUERY = /(^|\s)@([A-Za-z0-9_.-]{0,32})$/;
+
+interface MentionCandidate {
+  key: string;
+  /** Text inserted after "@". */
+  insert: string;
+  label: string;
+  sub: string | null;
+  avatarUrl: string | null;
+  username: string;
+  role?: Role;
+  special?: boolean;
+}
 
 function isCoarsePointer() {
   return typeof window !== "undefined" && window.matchMedia("(pointer: coarse)").matches;
@@ -43,8 +55,9 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
   const draftFile = useChat((s) => s.draftFile);
   const setDraftFile = useChat((s) => s.setDraftFile);
   const online = useChat((s) => s.online);
-  const messages = useChat((s) => s.messages);
-  const me = useChat((s) => s.session?.username ?? "");
+  const members = useChat((s) => s.members);
+  const myId = useChat((s) => s.session?.userId ?? "");
+  const myRole = useChat((s) => s.session?.role ?? "member");
   const pushToast = useChat((s) => s.pushToast);
 
   const [text, setText] = useState("");
@@ -110,20 +123,35 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
     }
   }, []);
 
-  const mentionCandidates = useMemo(() => {
+  const mentionCandidates = useMemo<MentionCandidate[]>(() => {
     if (!mention) return [];
-    const names = new Map<string, string>();
-    for (const u of online) names.set(u.username.toLowerCase(), u.username);
-    for (let i = messages.length - 1; i >= 0 && names.size < 60; i--) {
-      const n = messages[i].username;
-      if (!names.has(n.toLowerCase())) names.set(n.toLowerCase(), n);
-    }
-    names.delete(me.toLowerCase());
     const q = mention.query.toLowerCase();
-    return Array.from(names.values())
-      .filter((n) => n.toLowerCase().startsWith(q))
-      .slice(0, 6);
-  }, [mention, online, messages, me]);
+    const onlineIds = new Set(online.map((u) => u.userId));
+    const out: MentionCandidate[] = [];
+    if (myRole === "admin" || myRole === "mod") {
+      for (const special of ["everyone", "here"]) {
+        if (special.startsWith(q)) {
+          out.push({
+            key: special,
+            insert: special,
+            label: `@${special}`,
+            sub: special === "everyone" ? "Notifikasi semua anggota" : "Notifikasi yang sedang online",
+            avatarUrl: null,
+            username: special,
+            special: true,
+          });
+        }
+      }
+    }
+    const people = Object.values(members)
+      .filter((m) => m.handle && !m.banned && m.id !== myId)
+      .filter((m) => !q || m.handle!.toLowerCase().startsWith(q) || m.username.toLowerCase().split(/\s+/).some((w) => w.startsWith(q)))
+      .sort((a, b) => Number(onlineIds.has(b.id)) - Number(onlineIds.has(a.id)) || a.username.localeCompare(b.username));
+    for (const m of people) {
+      out.push({ key: m.id, insert: m.handle!, label: m.username, sub: `@${m.handle}`, avatarUrl: m.avatarUrl, username: m.username, role: m.role });
+    }
+    return out.slice(0, 7);
+  }, [mention, online, members, myId, myRole]);
 
   const updateMention = (value: string, caret: number) => {
     const match = MENTION_QUERY.exec(value.slice(0, caret));
@@ -136,6 +164,7 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
   };
 
   const applyMention = (name: string) => {
+    // name = Discord @username (or "everyone"/"here")
     if (!mention) return;
     const el = textareaRef.current;
     const caret = el?.selectionStart ?? text.length;
@@ -227,7 +256,7 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
       }
       if (e.key === "Enter" || e.key === "Tab") {
         e.preventDefault();
-        applyMention(mentionCandidates[mentionIndex] ?? mentionCandidates[0]);
+        applyMention((mentionCandidates[mentionIndex] ?? mentionCandidates[0]).insert);
         return;
       }
       if (e.key === "Escape") {
@@ -309,19 +338,28 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
       {mention && mentionCandidates.length > 0 && !picker && (
         <div className="absolute bottom-full left-3 right-3 mb-1 animate-slide-up overflow-hidden rounded-2xl border border-white/[0.08] bg-ink-850 p-1 shadow-2xl shadow-black/50 sm:left-4 sm:right-auto sm:w-72" role="listbox">
           <p className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Anggota</p>
-          {mentionCandidates.map((name, i) => (
+          {mentionCandidates.map((c, i) => (
             <button
-              key={name}
+              key={c.key}
               type="button"
               role="option"
               aria-selected={i === mentionIndex}
               onMouseDown={(e) => e.preventDefault()}
-              onClick={() => applyMention(name)}
+              onClick={() => applyMention(c.insert)}
               onMouseEnter={() => setMentionIndex(i)}
               className={cn("flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm", i === mentionIndex ? "bg-white/[0.08]" : "")}
             >
-              <Avatar username={name} size={24} />
-              <span className="truncate font-medium text-zinc-100">{name}</span>
+              {c.special ? (
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-300/20 text-amber-200">
+                  <AtSign className="h-3.5 w-3.5" />
+                </span>
+              ) : (
+                <Avatar username={c.username} src={c.avatarUrl} size={24} />
+              )}
+              <span className={cn("truncate font-medium", c.special ? "text-amber-200" : "text-zinc-100")} style={c.special ? undefined : { color: nameColor(c.username, c.role) }}>
+                {c.label}
+              </span>
+              {c.sub && <span className="ml-auto truncate pl-2 text-xs text-zinc-500">{c.sub}</span>}
             </button>
           ))}
         </div>

@@ -1,12 +1,13 @@
 "use client";
 
-import { Ellipsis, Hash, LogOut, Search, ShieldCheck, Users } from "lucide-react";
+import { Ellipsis, Hash, LogOut, Search, UserRound, Users } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { CHANNEL_NAME } from "@/lib/constants";
 import { cn } from "@/lib/utils";
 import { useChat } from "@/store/chat";
 import { Logo } from "../Logo";
 import { Avatar } from "../ui/Avatar";
+import { RoleBadge } from "../ui/RoleBadge";
 
 interface ChatHeaderProps {
   onSignOut: () => void;
@@ -97,12 +98,24 @@ export function ChatHeader({ onSignOut, onHeight }: ChatHeaderProps) {
                   <div className="min-w-0">
                     <p className="flex items-center gap-1 truncate text-sm font-semibold text-zinc-100">
                       {username}
-                      {profile?.isAdmin && <ShieldCheck className="h-3.5 w-3.5 shrink-0 text-emerald-300" aria-label="Admin" />}
+                      <RoleBadge role={profile?.role} />
                     </p>
                     {profile?.handle && <p className="truncate text-[11px] text-zinc-500">@{profile.handle} · Discord</p>}
                   </div>
                 </div>
                 <div className="my-1 h-px bg-white/[0.06]" />
+                <button
+                  type="button"
+                  role="menuitem"
+                  onClick={() => {
+                    setMenuOpen(false);
+                    if (profile) useChat.getState().openProfile(profile.userId);
+                  }}
+                  className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2.5 text-left text-sm text-zinc-200 transition hover:bg-white/[0.06]"
+                >
+                  <UserRound className="h-4 w-4 text-zinc-400" />
+                  Profil Saya
+                </button>
                 <button
                   type="button"
                   role="menuitem"

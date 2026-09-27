@@ -16,6 +16,10 @@ export interface MessageRow {
   author_handle?: string | null;
   /** Voice note length. */
   duration_ms?: number | null;
+  /** Ids of members mentioned with @username (resolved by the server). */
+  mentions?: string[] | null;
+  /** Sent by an admin/moderator with @everyone or @here. */
+  mention_everyone?: boolean | null;
 }
 
 /** Message as held in the client store (row + optimistic-send state). */
@@ -36,6 +40,37 @@ export interface ReplyPreview {
   avatar_url?: string | null;
 }
 
+export type Role = "member" | "mod" | "admin";
+
+/** Entry of the member directory (list_members). */
+export interface Member {
+  id: string;
+  username: string;
+  handle: string | null;
+  avatarUrl: string | null;
+  role: Role;
+  banned: boolean;
+  lastSeen: string;
+}
+
+/** Full profile card data (get_profile). */
+export interface ProfileDetails {
+  id: string;
+  username: string;
+  discord_username: string | null;
+  discord_id: string | null;
+  avatar_url: string | null;
+  banner_url: string | null;
+  accent_color: number | null;
+  role: Role;
+  banned: boolean;
+  is_discord: boolean;
+  created_at: string;
+  guild_joined_at: string | null;
+  last_seen: string;
+  message_count: number;
+}
+
 /** Signed-in, verified Discord member. */
 export interface Profile {
   /** public.users.id */
@@ -45,6 +80,7 @@ export interface Profile {
   username: string;
   avatarUrl: string | null;
   handle: string | null;
+  role: Role;
   isAdmin: boolean;
 }
 
