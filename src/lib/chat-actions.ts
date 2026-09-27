@@ -6,6 +6,7 @@ import {
   fetchMessagesBetween,
   fetchLatestMessages,
   fetchReplyPreviews,
+  fetchRoleDefs,
   listMembers,
   postMessage,
   removeMessage,
@@ -224,8 +225,11 @@ let membersLoading: Promise<void> | null = null;
 /** Refresh the member directory (roles, @handles, avatars). */
 export function refreshMembers(): Promise<void> {
   if (membersLoading) return membersLoading;
-  membersLoading = listMembers()
-    .then((list) => store().setMembers(list))
+  membersLoading = Promise.all([listMembers(), fetchRoleDefs()])
+    .then(([list, roles]) => {
+      store().setRoleDefs(roles);
+      store().setMembers(list);
+    })
     .catch(() => undefined)
     .finally(() => {
       membersLoading = null;

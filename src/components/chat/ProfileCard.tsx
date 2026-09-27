@@ -8,7 +8,6 @@ import type { ProfileDetails, Role } from "@/lib/types";
 import { cn, formatLongDate, friendlyError, nameColor, snowflakeDate } from "@/lib/utils";
 import { useChat } from "@/store/chat";
 import { Avatar } from "../ui/Avatar";
-import { RoleBadge } from "../ui/RoleBadge";
 import { useEscape } from "../ui/useEscape";
 
 function bannerStyle(p: ProfileDetails | null): React.CSSProperties {
@@ -129,10 +128,9 @@ export function ProfileCard() {
             <>
               <div className="mt-2">
                 <div className="flex flex-wrap items-center gap-2">
-                  <h2 className="text-xl font-bold" style={{ color: nameColor(profile.username, profile.role) }}>
+                  <h2 className="text-xl font-bold" style={{ color: nameColor(profile.username, profile.discord_roles[0]?.color) }}>
                     {profile.username}
                   </h2>
-                  <RoleBadge role={profile.role} />
                   {profile.banned && (
                     <span className="rounded-md bg-red-500/15 px-1.5 py-px text-[10px] font-bold tracking-wide text-red-300 ring-1 ring-inset ring-red-400/25">
                       DIBLOKIR
@@ -141,6 +139,32 @@ export function ProfileCard() {
                 </div>
                 {profile.discord_username && <p className="text-sm text-zinc-400">@{profile.discord_username}</p>}
                 <p className="mt-1 text-xs text-zinc-500">{isOnline ? "🟢 Online sekarang" : `Terakhir aktif ${formatLongDate(profile.last_seen)}`}</p>
+              </div>
+
+              <div className="mt-4">
+                <p className="mb-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">Role</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {profile.discord_roles.map((r) => (
+                    <span
+                      key={r.id}
+                      className="inline-flex items-center gap-1.5 rounded-lg bg-white/[0.05] px-2 py-1 text-xs font-medium text-zinc-200 ring-1 ring-inset ring-white/[0.06]"
+                    >
+                      <span className="h-2.5 w-2.5 rounded-full" style={{ backgroundColor: r.color }} />
+                      {r.name}
+                    </span>
+                  ))}
+                  {profile.role !== "member" && (
+                    <span className="inline-flex items-center gap-1.5 rounded-lg bg-white/[0.05] px-2 py-1 text-xs font-medium text-zinc-400 ring-1 ring-inset ring-white/[0.06]">
+                      <Shield className="h-3 w-3" />
+                      {profile.role === "admin" ? "Admin Daget" : "Moderator Daget"}
+                    </span>
+                  )}
+                  {profile.discord_roles.length === 0 && profile.role === "member" && (
+                    <span className="text-xs text-zinc-500">
+                      {profile.is_discord && !profile.roles_synced_at ? "Role belum disinkronkan dari Discord." : "Belum punya role."}
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="mt-4 divide-y divide-white/[0.05] rounded-2xl bg-black/25 px-4 py-1 ring-1 ring-inset ring-white/[0.05]">

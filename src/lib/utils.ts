@@ -141,13 +141,23 @@ export function mediaLabel(type: string): string {
   return "Gambar";
 }
 
-/** Role colours (Discord-style). Members keep their per-name pastel colour. */
-export const ROLE_COLORS = { admin: "#fbbf24", mod: "#7dd3fc" } as const;
+/** Name colour: the member's highest Discord role colour, else a stable pastel. */
+export function nameColor(username: string, roleColor?: string | null): string {
+  return roleColor || usernameColor(username);
+}
 
-export function nameColor(username: string, role?: string | null): string {
-  if (role === "admin") return ROLE_COLORS.admin;
-  if (role === "mod") return ROLE_COLORS.mod;
-  return usernameColor(username);
+/** Highest cosmetic role of a member that is known locally. */
+export function topRole<T extends { id: string }>(roleIds: string[] | undefined, defs: Record<string, T>): T | undefined {
+  for (const id of roleIds ?? []) if (defs[id]) return defs[id];
+  return undefined;
+}
+
+export function memberColor<T extends { id: string; color: string }>(
+  username: string,
+  roleIds: string[] | undefined,
+  defs: Record<string, T>,
+): string {
+  return nameColor(username, topRole(roleIds, defs)?.color);
 }
 
 /** Account creation time encoded in a Discord snowflake id. */

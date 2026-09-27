@@ -2,30 +2,23 @@
 
 import { X } from "lucide-react";
 import { useMemo } from "react";
-import type { Member, Role } from "@/lib/types";
-import { cn, nameColor } from "@/lib/utils";
+import type { Member, RoleDef } from "@/lib/types";
+import { cn, nameColor, topRole } from "@/lib/utils";
 import { useChat } from "@/store/chat";
 import { Avatar } from "../ui/Avatar";
-import { RoleBadge } from "../ui/RoleBadge";
 
 interface Row {
   id: string;
   username: string;
   avatarUrl: string | null;
-  role: Role;
+  top?: RoleDef;
   online: boolean;
 }
-
-const GROUPS: { key: string; title: string; match: (r: Row) => boolean }[] = [
-  { key: "admin", title: "Admin", match: (r) => r.online && r.role === "admin" },
-  { key: "mod", title: "Moderator", match: (r) => r.online && r.role === "mod" },
-  { key: "online", title: "Online", match: (r) => r.online && r.role === "member" },
-  { key: "offline", title: "Offline", match: (r) => !r.online },
-];
 
 export function MembersPanel() {
   const online = useChat((s) => s.online);
   const members = useChat((s) => s.members);
+  const roleDefs = useChat((s) => s.roleDefs);
   const myId = useChat((s) => s.session?.userId);
   const setPanel = useChat((s) => s.setPanel);
   const typing = useChat((s) => s.typing);
@@ -35,16 +28,31 @@ export function MembersPanel() {
     const map = new Map<string, Row>();
     for (const m of Object.values(members) as Member[]) {
       if (m.banned) continue;
-      map.set(m.id, { id: m.id, username: m.username, avatarUrl: m.avatarUrl, role: m.role, online: onlineIds.has(m.id) });
+      map.set(m.id, { id: m.id, username: m.username, avatarUrl: m.avatarUrl, top: topRole(m.roleIds, roleDefs), online: onlineIds.has(m.id) });
     }
     // Present in the room but not yet in the directory.
     for (const u of online) {
-      if (!map.has(u.userId)) map.set(u.userId, { id: u.userId, username: u.username, avatarUrl: u.avatarUrl, role: "member", online: true });
+      if (!map.has(u.userId)) map.set(u.userId, { id: u.userId, username: u.username, avatarUrl: u.avatarUrl, online: true });
     }
     return Array.from(map.values()).sort((a, b) => a.username.localeCompare(b.username, "id", { sensitivity: "base" }));
-  }, [online, members]);
+  }, [online, members, roleDefs]);
 
   const onlineCount = rows.filter((r) => r.online).length;
+
+  // Like Discord: online members grouped under their highest role, then plain online, then offline.
+  const groups = useMemo(() => {
+    const out: { key: string; title: string; color?: string; list: Row[] }[] = [];
+    const ordered = Object.values(roleDefs).sort((a, b) => b.position - a.position);
+    for (const role of ordered) {
+      const list = rows.filter((r) => r.online && r.top?.id === role.id);
+      if (list.length) out.push({ key: role.id, title: role.name, color: role.color, list });
+    }
+    const plain = rows.filter((r) => r.online && !r.top);
+    if (plain.length) out.push({ key: "online", title: "Online", list: plain });
+    const offline = rows.filter((r) => !r.online);
+    if (offline.length) out.push({ key: "offline", title: "Offline", list: offline });
+    return out;
+  }, [rows, roleDefs]);
 
   return (
     <div className="flex h-full flex-col">
@@ -58,13 +66,12 @@ export function MembersPanel() {
       </div>
       <div className="scrollbar-thin flex-1 overflow-y-auto px-2 pb-4">
         {rows.length === 0 && <p className="px-3 py-6 text-center text-sm text-zinc-500">Menghubungkan…</p>}
-        {GROUPS.map((group) => {
-          const list = rows.filter(group.match);
-          if (list.length === 0) return null;
+        {groups.map(({ key, title, color, list }) => {
           return (
-            <section key={group.key} className="mb-3">
-              <h3 className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
-                {group.title} — {list.length}
+            <section key={key} className="mb-3">
+              <h3 className="flex items-center gap-1.5 px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wider text-zinc-500">
+                {color && <span className="h-2 w-2 rounded-full" style={{ backgroundColor: color }} />}
+                {title} — {list.length}
               </h3>
               <ul className="space-y-0.5">
                 {list.map((u) => (
@@ -80,14 +87,13 @@ export function MembersPanel() {
                       <Avatar username={u.username} src={u.avatarUrl} size={32} online={u.online} />
                       <div className="min-w-0 flex-1">
                         <p className="flex items-center gap-1.5 text-sm font-medium">
-                          <span className="truncate" style={{ color: nameColor(u.username, u.role) }}>
+                          <span className="truncate" style={{ color: nameColor(u.username, u.top?.color) }}>
                             {u.username}
                           </span>
                           {u.id === myId && <span className="shrink-0 text-xs font-normal text-zinc-500">(kamu)</span>}
                         </p>
                         {typing[u.username] && <p className="text-[11px] text-zinc-500">sedang mengetik…</p>}
                       </div>
-                      <RoleBadge role={u.role} />
                     </button>
                   </li>
                 ))}

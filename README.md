@@ -189,10 +189,11 @@ Setup (sekali):
 
 Jalankan `supabase/roles_profiles_search.sql` setelah `discord_voice.sql`.
 
-- **Role**: `member`, `mod` (Moderator), `admin`. Warna nama: Admin emas, Moderator biru, anggota biasa punya warna pastel otomatis dari namanya. Badge ADMIN/MOD tampil di samping nama.
+- **Role kosmetik dari Discord** (`supabase/discord_roles.sql`): isi tabel `discord_roles` dengan Role ID, nama, warna (`#RRGGBB`), dan `position` (makin besar makin tinggi). Saat login, role anggota di server Discord ikut tersimpan; warna nama mengikuti role tertinggi. Role ini hanya warna — tanpa izin apa pun. Tidak ada label di samping nama; role terlihat di kartu profil. Anggota yang login sebelum fitur ini akan melihat tombol **Sinkronkan** (atau menu ⋯ → Sinkronkan Role Discord).
+- **Hak moderasi Daget** (terpisah dari role Discord, tidak ditampilkan di chat): `admin` dan `mod`.
   - Admin: hapus pesan siapa pun, jadikan/cabut Moderator atau Admin, blokir anggota.
   - Moderator: hapus pesan siapa pun, blokir anggota biasa.
-  - Diatur dari kartu profil (klik foto/nama seseorang → Moderasi). Admin tidak bisa mengubah role dirinya sendiri; Admin/Moderator harus diturunkan dulu sebelum bisa diblokir.
+  - Diatur dari kartu profil (klik foto/nama → Moderasi). Admin tidak bisa mengubah dirinya sendiri; Admin/Moderator harus diturunkan dulu sebelum bisa diblokir.
 - **Kartu profil**: klik foto atau nama → banner, foto, nama, @username Discord, role, tanggal akun Discord dibuat / join server / join Daget, jumlah pesan, tombol ke profil Discord asli, "Pesannya", "Yang menyebut", dan "Mention". Banner & tanggal join server diambil saat login Discord (anggota lama perlu login ulang agar terisi).
 - **Mention**: ketik `@` untuk memilih anggota (disimpan sebagai @username Discord, ditampilkan sebagai nama). `@everyone` / `@here` hanya berlaku jika dikirim Admin/Moderator — pesannya di-highlight kuning untuk semua orang.
 - **Search by**: panel cari punya filter **Dari** (pengirim), **Menyebut** (anggota yang di-mention), dan **Jenis** (semua media, gambar, GIF, pesan suara, link) — bisa digabung dengan kata kunci.

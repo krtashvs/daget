@@ -5,7 +5,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { searchMessagesAdvanced, type SearchHas } from "@/lib/api";
 import { jumpToMessage } from "@/lib/chat-actions";
 import type { Member, MessageRow } from "@/lib/types";
-import { cn, escapeRegExp, formatStamp, friendlyError, mediaLabel, nameColor } from "@/lib/utils";
+import { cn, escapeRegExp, formatStamp, friendlyError, mediaLabel, memberColor } from "@/lib/utils";
 import { useChat } from "@/store/chat";
 import { Avatar } from "../ui/Avatar";
 
@@ -82,6 +82,7 @@ function FilterChip({
 
 function MemberPicker({ onPick }: { onPick: (m: Member) => void }) {
   const members = useChat((s) => s.members);
+  const roleDefs = useChat((s) => s.roleDefs);
   const [q, setQ] = useState("");
   const list = useMemo(() => {
     const needle = q.trim().toLowerCase();
@@ -110,7 +111,7 @@ function MemberPicker({ onPick }: { onPick: (m: Member) => void }) {
               className="flex w-full items-center gap-2.5 rounded-xl px-2.5 py-2 text-left text-sm hover:bg-white/[0.06]"
             >
               <Avatar username={m.username} src={m.avatarUrl} size={24} />
-              <span className="truncate font-medium" style={{ color: nameColor(m.username, m.role) }}>
+              <span className="truncate font-medium" style={{ color: memberColor(m.username, m.roleIds, roleDefs) }}>
                 {m.username}
               </span>
               {m.handle && <span className="ml-auto truncate pl-2 text-xs text-zinc-500">@{m.handle}</span>}
@@ -125,6 +126,7 @@ function MemberPicker({ onPick }: { onPick: (m: Member) => void }) {
 export function SearchPanel() {
   const setPanel = useChat((s) => s.setPanel);
   const members = useChat((s) => s.members);
+  const roleDefs = useChat((s) => s.roleDefs);
   const preset = useChat((s) => s.searchPreset);
   const [query, setQuery] = useState("");
   const [from, setFrom] = useState<string | null>(null);
@@ -293,7 +295,7 @@ export function SearchPanel() {
                       <Avatar username={name} src={author?.avatarUrl ?? row.avatar_url} size={32} />
                       <div className="min-w-0 flex-1">
                         <div className="flex items-baseline gap-2">
-                          <span className="truncate text-sm font-semibold" style={{ color: nameColor(name, author?.role) }}>
+                          <span className="truncate text-sm font-semibold" style={{ color: memberColor(name, author?.roleIds, roleDefs) }}>
                             {name}
                           </span>
                           <span className="shrink-0 text-[11px] text-zinc-500">{formatStamp(row.created_at)}</span>

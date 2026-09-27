@@ -1,6 +1,6 @@
 import { getSupabase } from "./supabase";
 import { ALLOWED_IMAGE_TYPES, MAX_UPLOAD_BYTES, MEDIA_BUCKET, PAGE_SIZE } from "./constants";
-import type { Member, MessageRow, MessageType, Profile, ProfileDetails, ReplyPreview, Role } from "./types";
+import type { Member, MessageRow, MessageType, Profile, ProfileDetails, ReplyPreview, Role, RoleDef } from "./types";
 import { uuid } from "./utils";
 
 const MESSAGE_COLUMNS =
@@ -13,6 +13,7 @@ interface MemberRow {
   discord_username: string | null;
   role?: Role;
   is_admin: boolean;
+  needs_role_sync?: boolean;
 }
 
 function toProfile(row: MemberRow, authId: string): Profile {
@@ -24,6 +25,7 @@ function toProfile(row: MemberRow, authId: string): Profile {
     handle: row.discord_username,
     role: row.role ?? (row.is_admin ? "admin" : "member"),
     isAdmin: row.role ? row.role === "admin" : Boolean(row.is_admin),
+    needsRoleSync: Boolean(row.needs_role_sync),
   };
 }
 
@@ -224,6 +226,7 @@ interface MemberListRow {
   role: Role;
   banned: boolean;
   last_seen: string;
+  role_ids: string[] | null;
 }
 
 export async function listMembers(): Promise<Member[]> {
@@ -237,7 +240,14 @@ export async function listMembers(): Promise<Member[]> {
     role: m.role,
     banned: m.banned,
     lastSeen: m.last_seen,
+    roleIds: m.role_ids ?? [],
   }));
+}
+
+export async function fetchRoleDefs(): Promise<RoleDef[]> {
+  const { data, error } = await getSupabase().from("discord_roles").select("id,name,color,position").order("position", { ascending: false });
+  if (error) return [];
+  return data as RoleDef[];
 }
 
 export async function getProfile(id: string): Promise<ProfileDetails> {

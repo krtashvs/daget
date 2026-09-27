@@ -112,6 +112,8 @@ Deno.serve(async (req) => {
     banner_url: bannerUrl,
     accent_color: typeof me.accent_color === "number" ? me.accent_color : null,
     guild_joined_at: member.joined_at ?? null,
+    discord_role_ids: Array.isArray(member.roles) ? member.roles.map(String) : [],
+    roles_synced_at: new Date().toISOString(),
     verified_at: new Date().toISOString(),
     last_seen: new Date().toISOString(),
   };

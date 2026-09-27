@@ -3,7 +3,7 @@
 import { Copy, ExternalLink, ImageIcon, Reply, Trash2, UserRound, X } from "lucide-react";
 import { useCallback } from "react";
 import { deleteMessage } from "@/lib/chat-actions";
-import { formatStamp, mediaLabel, usernameColor } from "@/lib/utils";
+import { formatStamp, mediaLabel, memberColor } from "@/lib/utils";
 import { useChat } from "@/store/chat";
 import { Avatar } from "../ui/Avatar";
 import { useEscape } from "../ui/useEscape";
@@ -14,6 +14,8 @@ export function MessageActionSheet() {
   const message = useChat((s) => s.sheetMessage);
   const myId = useChat((s) => s.session?.userId);
   const isAdmin = useChat((s) => s.session?.role === "admin" || s.session?.role === "mod");
+  const members = useChat((s) => s.members);
+  const roleDefs = useChat((s) => s.roleDefs);
   const close = useCallback(() => useChat.getState().setSheetMessage(null), []);
   useEscape(Boolean(message), close);
   if (!message) return null;
@@ -42,7 +44,10 @@ export function MessageActionSheet() {
           <Avatar username={message.username} src={message.avatar_url} size={32} />
           <div className="min-w-0 flex-1">
             <p className="flex items-baseline gap-2 text-sm">
-              <span className="truncate font-semibold" style={{ color: usernameColor(message.username) }}>
+              <span
+                className="truncate font-semibold"
+                style={{ color: memberColor(message.username, message.user_id ? members[message.user_id]?.roleIds : undefined, roleDefs) }}
+              >
                 {message.username}
               </span>
               <span className="shrink-0 text-[11px] text-zinc-500">{formatStamp(message.created_at)}</span>

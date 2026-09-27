@@ -42,15 +42,26 @@ export interface ReplyPreview {
 
 export type Role = "member" | "mod" | "admin";
 
+/** Cosmetic role mirrored from the Discord server (colour only, no permissions). */
+export interface RoleDef {
+  id: string;
+  name: string;
+  color: string;
+  position: number;
+}
+
 /** Entry of the member directory (list_members). */
 export interface Member {
   id: string;
   username: string;
   handle: string | null;
   avatarUrl: string | null;
+  /** Daget moderation level (not shown next to names). */
   role: Role;
   banned: boolean;
   lastSeen: string;
+  /** Discord server role ids, highest first. */
+  roleIds: string[];
 }
 
 /** Full profile card data (get_profile). */
@@ -68,7 +79,9 @@ export interface ProfileDetails {
   created_at: string;
   guild_joined_at: string | null;
   last_seen: string;
+  roles_synced_at: string | null;
   message_count: number;
+  discord_roles: { id: string; name: string; color: string }[];
 }
 
 /** Signed-in, verified Discord member. */
@@ -82,6 +95,8 @@ export interface Profile {
   handle: string | null;
   role: Role;
   isAdmin: boolean;
+  /** Logged in before role syncing existed — needs one Discord re-login. */
+  needsRoleSync: boolean;
 }
 
 export interface OnlineUser {

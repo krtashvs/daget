@@ -1,6 +1,7 @@
 "use client";
 
-import { ImagePlus, WifiOff } from "lucide-react";
+import { ImagePlus, RefreshCw, WifiOff, X } from "lucide-react";
+import { signInWithDiscord } from "@/lib/api";
 import { useCallback, useEffect, useRef, useState, type DragEvent } from "react";
 import { validateImageFile } from "@/lib/api";
 import type { Profile } from "@/lib/types";
@@ -29,6 +30,8 @@ export function ChatRoom({ session, gifSearchEnabled, onSignOut }: ChatRoomProps
   const status = useChat((s) => s.status);
   const [headerHeight, setHeaderHeight] = useState(56);
   const [dragging, setDragging] = useState(false);
+  const [syncDismissed, setSyncDismissed] = useState(false);
+  const showSync = session.needsRoleSync && !syncDismissed;
   const dragDepth = useRef(0);
 
   // Show the online list by default on wide screens.
@@ -84,6 +87,24 @@ export function ChatRoom({ session, gifSearchEnabled, onSignOut }: ChatRoomProps
             <div className="glass-strong flex items-center gap-2 rounded-full px-3.5 py-1.5 text-xs text-zinc-300 shadow-lg shadow-black/40">
               <WifiOff className="h-3.5 w-3.5" />
               {status === "reconnecting" ? "Koneksi terputus, menyambung ulang…" : "Menghubungkan…"}
+            </div>
+          </div>
+        )}
+
+        {showSync && status === "connected" && (
+          <div className="absolute inset-x-0 z-20 flex justify-center px-3" style={{ top: headerHeight + 8 }}>
+            <div className="glass-strong flex max-w-md animate-slide-up items-center gap-2 rounded-2xl py-2 pl-3.5 pr-1.5 text-[13px] text-zinc-300 shadow-lg shadow-black/40">
+              <span className="min-w-0 flex-1">Sinkronkan role Rizz Academy biar warna namamu sesuai.</span>
+              <button
+                type="button"
+                onClick={() => void signInWithDiscord()}
+                className="inline-flex shrink-0 items-center gap-1.5 rounded-xl bg-zinc-50 px-3 py-1.5 text-xs font-semibold text-zinc-950 transition hover:bg-white"
+              >
+                <RefreshCw className="h-3.5 w-3.5" /> Sinkronkan
+              </button>
+              <button type="button" onClick={() => setSyncDismissed(true)} className="icon-btn h-8 w-8" aria-label="Nanti saja">
+                <X className="h-4 w-4" />
+              </button>
             </div>
           </div>
         )}

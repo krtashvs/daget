@@ -4,8 +4,7 @@ import { AlertCircle, Copy, CornerUpLeft, ImageOff, LoaderCircle, Reply, RotateC
 import { memo, useCallback, useState } from "react";
 import { deleteMessage, retryMessage } from "@/lib/chat-actions";
 import type { ChatMessage } from "@/lib/types";
-import { cn, formatFull, formatStamp, formatTime, nameColor } from "@/lib/utils";
-import { RoleBadge } from "../ui/RoleBadge";
+import { cn, formatFull, formatStamp, formatTime, memberColor } from "@/lib/utils";
 import { useLongPress } from "@/hooks/useLongPress";
 import { useSwipeReply } from "@/hooks/useSwipeReply";
 import { useChat } from "@/store/chat";
@@ -36,7 +35,9 @@ export async function copyText(text: string) {
 
 export const MessageItem = memo(function MessageItem({ message, grouped, isOwn, canModerate, me, myId, highlighted }: MessageItemProps) {
   const author = useChat((s) => (message.user_id ? s.members[message.user_id] : undefined));
-  const role = author?.role;
+  const roleDefs = useChat((s) => s.roleDefs);
+  const authorName = author?.username ?? message.username;
+  const color = memberColor(authorName, author?.roleIds, roleDefs);
   const openAuthor = (e: React.MouseEvent) => {
     e.stopPropagation();
     if (message.user_id) useChat.getState().openProfile(message.user_id);
@@ -125,11 +126,10 @@ export const MessageItem = memo(function MessageItem({ message, grouped, isOwn, 
                 type="button"
                 onClick={openAuthor}
                 className="min-w-0 truncate text-[15px] font-semibold leading-5 hover:underline"
-                style={{ color: nameColor(author?.username ?? message.username, role) }}
+                style={{ color }}
               >
-                {author?.username ?? message.username}
+                {authorName}
               </button>
-              <RoleBadge role={role} className="self-center" />
               <time dateTime={message.created_at} title={formatFull(message.created_at)} className="shrink-0 text-[11px] text-zinc-500">
                 {formatStamp(message.created_at)}
               </time>

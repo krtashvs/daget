@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import type { ChatMessage, ConnectionStatus, Member, MessageRow, OnlineUser, Profile, ReplyPreview } from "@/lib/types";
+import type { ChatMessage, ConnectionStatus, Member, MessageRow, OnlineUser, Profile, ReplyPreview, RoleDef } from "@/lib/types";
 import { compareMessages } from "@/lib/utils";
 import { TYPING_TTL_MS } from "@/lib/constants";
 
@@ -42,6 +42,8 @@ interface ChatState {
   lightboxUrl: string | null;
   /** Member directory keyed by user id (roles, handles, avatars). */
   members: Record<string, Member>;
+  /** Cosmetic Discord roles keyed by id. */
+  roleDefs: Record<string, RoleDef>;
   /** User whose profile card is open. */
   profileUserId: string | null;
   /** Filters to apply when the search panel opens (e.g. from a profile card). */
@@ -83,6 +85,7 @@ interface ChatState {
   setLightboxUrl: (url: string | null) => void;
   setKickReason: (reason: string | null) => void;
   setMembers: (members: Member[]) => void;
+  setRoleDefs: (roles: RoleDef[]) => void;
   openProfile: (userId: string | null) => void;
   openSearchWith: (preset: { from?: string | null; mentions?: string | null }) => void;
   clearSearchPreset: () => void;
@@ -121,6 +124,7 @@ export const useChat = create<ChatState>()((set, get) => ({
   panel: null,
   kickReason: null,
   members: {},
+  roleDefs: {},
   profileUserId: null,
   searchPreset: null,
   scrollToBottomTick: 0,
@@ -230,6 +234,7 @@ export const useChat = create<ChatState>()((set, get) => ({
   setLightboxUrl: (lightboxUrl) => set({ lightboxUrl }),
   setKickReason: (kickReason) => set({ kickReason }),
   setMembers: (list) => set({ members: Object.fromEntries(list.map((m) => [m.id, m])) }),
+  setRoleDefs: (roles) => set({ roleDefs: Object.fromEntries(roles.map((r) => [r.id, r])) }),
   openProfile: (profileUserId) => set({ profileUserId, sheetMessage: null }),
   openSearchWith: (preset) => set({ searchPreset: preset, panel: "search", profileUserId: null }),
   clearSearchPreset: () => set({ searchPreset: null }),

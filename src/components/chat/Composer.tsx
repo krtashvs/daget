@@ -7,8 +7,8 @@ import { validateImageFile } from "@/lib/api";
 import { sendGif, sendImage, sendText, sendVoice } from "@/lib/chat-actions";
 import { ALLOWED_IMAGE_ACCEPT, CHANNEL_NAME, MAX_MESSAGE_LENGTH, TYPING_THROTTLE_MS } from "@/lib/constants";
 import { broadcastTyping } from "@/lib/realtime";
-import type { GifResult, Role } from "@/lib/types";
-import { cn, mediaLabel, nameColor, usernameColor } from "@/lib/utils";
+import type { GifResult } from "@/lib/types";
+import { cn, mediaLabel, memberColor, usernameColor } from "@/lib/utils";
 import { MAX_VOICE_MS, useVoiceRecorder, type RecorderError } from "@/hooks/useVoiceRecorder";
 import { useChat } from "@/store/chat";
 import { Avatar } from "../ui/Avatar";
@@ -36,7 +36,7 @@ interface MentionCandidate {
   sub: string | null;
   avatarUrl: string | null;
   username: string;
-  role?: Role;
+  roleIds?: string[];
   special?: boolean;
 }
 
@@ -58,6 +58,7 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
   const members = useChat((s) => s.members);
   const myId = useChat((s) => s.session?.userId ?? "");
   const myRole = useChat((s) => s.session?.role ?? "member");
+  const roleDefs = useChat((s) => s.roleDefs);
   const pushToast = useChat((s) => s.pushToast);
 
   const [text, setText] = useState("");
@@ -148,7 +149,7 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
       .filter((m) => !q || m.handle!.toLowerCase().startsWith(q) || m.username.toLowerCase().split(/\s+/).some((w) => w.startsWith(q)))
       .sort((a, b) => Number(onlineIds.has(b.id)) - Number(onlineIds.has(a.id)) || a.username.localeCompare(b.username));
     for (const m of people) {
-      out.push({ key: m.id, insert: m.handle!, label: m.username, sub: `@${m.handle}`, avatarUrl: m.avatarUrl, username: m.username, role: m.role });
+      out.push({ key: m.id, insert: m.handle!, label: m.username, sub: `@${m.handle}`, avatarUrl: m.avatarUrl, username: m.username, roleIds: m.roleIds });
     }
     return out.slice(0, 7);
   }, [mention, online, members, myId, myRole]);
@@ -356,7 +357,7 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
               ) : (
                 <Avatar username={c.username} src={c.avatarUrl} size={24} />
               )}
-              <span className={cn("truncate font-medium", c.special ? "text-amber-200" : "text-zinc-100")} style={c.special ? undefined : { color: nameColor(c.username, c.role) }}>
+              <span className={cn("truncate font-medium", c.special ? "text-amber-200" : "text-zinc-100")} style={c.special ? undefined : { color: memberColor(c.username, c.roleIds, roleDefs) }}>
                 {c.label}
               </span>
               {c.sub && <span className="ml-auto truncate pl-2 text-xs text-zinc-500">{c.sub}</span>}
