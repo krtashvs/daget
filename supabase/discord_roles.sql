@@ -105,7 +105,7 @@ begin
     'roles_synced_at', v_user.roles_synced_at,
     'message_count', (select count(*) from public.messages m where m.user_id = v_user.id),
     'discord_roles', coalesce((
-      select json_agg(json_build_object('id', r.id, 'name', r.name, 'color', r.color, 'color2', r.color2) order by r.position desc)
+      select json_agg(json_build_object('id', r.id, 'name', r.name, 'color', r.color, 'color2', r.color2, 'color3', r.color3) order by r.position desc)
         from public.discord_roles r
        where r.id = any (v_user.discord_role_ids)
     ), '[]'::json)
@@ -117,3 +117,8 @@ $$;
 alter table public.discord_roles add column if not exists color2 text;
 alter table public.discord_roles drop constraint if exists discord_roles_color2_check;
 alter table public.discord_roles add constraint discord_roles_color2_check check (color2 is null or color2 ~ '^#[0-9A-Fa-f]{6}$');
+
+-- ── Warna ketiga (gaya "holographic" Discord) ──────────────────────
+alter table public.discord_roles add column if not exists color3 text;
+alter table public.discord_roles drop constraint if exists discord_roles_color3_check;
+alter table public.discord_roles add constraint discord_roles_color3_check check (color3 is null or color3 ~ '^#[0-9A-Fa-f]{6}$');

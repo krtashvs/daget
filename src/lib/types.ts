@@ -49,6 +49,8 @@ export interface RoleDef {
   color: string;
   /** Second colour for gradient role names (Discord enhanced role styles). */
   color2?: string | null;
+  /** Third colour (Discord "holographic" style). */
+  color3?: string | null;
   position: number;
 }
 
@@ -83,7 +85,7 @@ export interface ProfileDetails {
   last_seen: string;
   roles_synced_at: string | null;
   message_count: number;
-  discord_roles: { id: string; name: string; color: string; color2?: string | null }[];
+  discord_roles: { id: string; name: string; color: string; color2?: string | null; color3?: string | null }[];
 }
 
 /** Signed-in, verified Discord member. */

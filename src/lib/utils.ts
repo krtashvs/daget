@@ -146,13 +146,22 @@ export function mediaLabel(type: string): string {
 export interface RoleColor {
   color: string;
   color2?: string | null;
+  color3?: string | null;
+}
+
+/** Discord-style role gradient: colours sweep out and back (c1 → c2 [→ c3] → c1). */
+function roleGradient(role: RoleColor, angle: number): string | null {
+  if (!role.color2) return null;
+  const stops = [role.color, role.color2, ...(role.color3 ? [role.color3] : []), role.color];
+  return `linear-gradient(${angle}deg, ${stops.join(", ")})`;
 }
 
 /** Name style: highest Discord role colour (solid or gradient), else a stable pastel. */
 export function nameStyle(username: string, role?: RoleColor | null): CSSProperties {
-  if (role?.color2) {
+  const gradient = role ? roleGradient(role, 90) : null;
+  if (role && gradient) {
     return {
-      backgroundImage: `linear-gradient(90deg, ${role.color}, ${role.color2})`,
+      backgroundImage: gradient,
       WebkitBackgroundClip: "text",
       backgroundClip: "text",
       WebkitTextFillColor: "transparent",
@@ -164,7 +173,8 @@ export function nameStyle(username: string, role?: RoleColor | null): CSSPropert
 
 /** Background for a role dot/swatch (solid or gradient). */
 export function swatchStyle(role: RoleColor): CSSProperties {
-  return role.color2 ? { backgroundImage: `linear-gradient(135deg, ${role.color}, ${role.color2})` } : { backgroundColor: role.color };
+  const gradient = roleGradient(role, 135);
+  return gradient ? { backgroundImage: gradient } : { backgroundColor: role.color };
 }
 
 /** Highest cosmetic role of a member that is known locally. */
