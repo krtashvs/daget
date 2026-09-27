@@ -195,7 +195,7 @@ Jalankan `supabase/roles_profiles_search.sql` setelah `discord_voice.sql`.
   - Moderator: hapus pesan siapa pun, blokir anggota biasa.
   - Diatur dari kartu profil (klik foto/nama → Moderasi). Admin tidak bisa mengubah dirinya sendiri; Admin/Moderator harus diturunkan dulu sebelum bisa diblokir.
 - **Kartu profil**: klik foto atau nama → banner, foto, nama, @username Discord, role, tanggal akun Discord dibuat / join server / join Daget, jumlah pesan, tombol ke profil Discord asli, "Pesannya", "Yang menyebut", dan "Mention". Banner & tanggal join server diambil saat login Discord (anggota lama perlu login ulang agar terisi).
-- **Mention**: ketik `@` untuk memilih anggota (disimpan sebagai @username Discord, ditampilkan sebagai nama). `@everyone` / `@here` hanya berlaku jika dikirim Admin/Moderator — pesannya di-highlight kuning untuk semua orang.
+- **Mention**: ketik `@` untuk memilih anggota (disimpan sebagai @username Discord, ditampilkan sebagai nama), **role** (`@guardian`, `@vice-principal`, `@rizz-academy-student`, … — `supabase/role_mentions.sql`), atau `@everyone` / `@here`. Semua anggota boleh memakai ketiganya. Pesan yang menyebut kamu, role kamu, atau @everyone di-highlight.
 - **Search by**: panel cari punya filter **Dari** (pengirim), **Menyebut** (anggota yang di-mention), dan **Jenis** (semua media, gambar, GIF, pesan suara, link) — bisa digabung dengan kata kunci.
 
 ## Voice note & balas dengan swipe

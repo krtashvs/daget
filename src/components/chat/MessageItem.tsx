@@ -48,8 +48,14 @@ export const MessageItem = memo(function MessageItem({ message, grouped, isOwn, 
   const swipe = useSwipeReply(startReply, !message.status);
   const canDelete = isOwn || canModerate;
   const everyone = Boolean(message.mention_everyone);
+  const myRoleIds = useChat((s) => s.members[myId]?.roleIds);
+  const roleMentioned = Boolean(message.mention_roles?.some((id) => myRoleIds?.includes(id)));
   const mentioned =
-    !isOwn && !everyone && (Boolean(message.mentions?.includes(myId)) || (!message.mentions?.length && mentionsUser(message.content, me)));
+    !isOwn &&
+    !everyone &&
+    (Boolean(message.mentions?.includes(myId)) ||
+      roleMentioned ||
+      (!message.mentions?.length && !message.mention_roles?.length && mentionsUser(message.content, me)));
   const media = message.localPreview ?? message.media_url;
   const [broken, setBroken] = useState(false);
 

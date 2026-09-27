@@ -8,7 +8,7 @@ import { sendGif, sendImage, sendText, sendVoice } from "@/lib/chat-actions";
 import { ALLOWED_IMAGE_ACCEPT, CHANNEL_NAME, MAX_MESSAGE_LENGTH, TYPING_THROTTLE_MS } from "@/lib/constants";
 import { broadcastTyping } from "@/lib/realtime";
 import type { GifResult } from "@/lib/types";
-import { cn, mediaLabel, memberStyle, usernameColor } from "@/lib/utils";
+import { cn, mediaLabel, memberStyle, nameStyle, swatchStyle, usernameColor } from "@/lib/utils";
 import { MAX_VOICE_MS, useVoiceRecorder, type RecorderError } from "@/hooks/useVoiceRecorder";
 import { useChat } from "@/store/chat";
 import { Avatar } from "../ui/Avatar";
@@ -38,6 +38,8 @@ interface MentionCandidate {
   username: string;
   roleIds?: string[];
   special?: boolean;
+  /** Role mention: swatch colour source. */
+  roleColor?: { color: string; color2?: string | null; color3?: string | null };
 }
 
 function isCoarsePointer() {
@@ -57,7 +59,6 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
   const online = useChat((s) => s.online);
   const members = useChat((s) => s.members);
   const myId = useChat((s) => s.session?.userId ?? "");
-  const myRole = useChat((s) => s.session?.role ?? "member");
   const roleDefs = useChat((s) => s.roleDefs);
   const pushToast = useChat((s) => s.pushToast);
 
@@ -129,7 +130,7 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
     const q = mention.query.toLowerCase();
     const onlineIds = new Set(online.map((u) => u.userId));
     const out: MentionCandidate[] = [];
-    if (myRole === "admin" || myRole === "mod") {
+    {
       for (const special of ["everyone", "here"]) {
         if (special.startsWith(q)) {
           out.push({
@@ -144,6 +145,11 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
         }
       }
     }
+    for (const r of Object.values(roleDefs).sort((a, b) => b.position - a.position)) {
+      if (!r.slug) continue;
+      if (q && !r.slug.startsWith(q) && !r.name.toLowerCase().split(/\s+/).some((w) => w.startsWith(q))) continue;
+      out.push({ key: `role:${r.id}`, insert: r.slug, label: `@${r.name}`, sub: "Role", avatarUrl: null, username: r.name, roleColor: r });
+    }
     const people = Object.values(members)
       .filter((m) => m.handle && !m.banned && m.id !== myId)
       .filter((m) => !q || m.handle!.toLowerCase().startsWith(q) || m.username.toLowerCase().split(/\s+/).some((w) => w.startsWith(q)))
@@ -151,8 +157,8 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
     for (const m of people) {
       out.push({ key: m.id, insert: m.handle!, label: m.username, sub: `@${m.handle}`, avatarUrl: m.avatarUrl, username: m.username, roleIds: m.roleIds });
     }
-    return out.slice(0, 7);
-  }, [mention, online, members, myId, myRole]);
+    return out.slice(0, 8);
+  }, [mention, online, members, myId, roleDefs]);
 
   const updateMention = (value: string, caret: number) => {
     const match = MENTION_QUERY.exec(value.slice(0, caret));
@@ -354,10 +360,14 @@ export function Composer({ gifSearchEnabled }: { gifSearchEnabled: boolean }) {
                 <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-amber-300/20 text-amber-200">
                   <AtSign className="h-3.5 w-3.5" />
                 </span>
+              ) : c.roleColor ? (
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center">
+                  <span className="h-3.5 w-3.5 rounded-full" style={swatchStyle(c.roleColor)} />
+                </span>
               ) : (
                 <Avatar username={c.username} src={c.avatarUrl} size={24} />
               )}
-              <span className={cn("truncate font-medium", c.special ? "text-amber-200" : "text-zinc-100")} style={c.special ? undefined : memberStyle(c.username, c.roleIds, roleDefs)}>
+              <span className={cn("truncate font-medium", c.special ? "text-amber-200" : "text-zinc-100")} style={c.special ? undefined : c.roleColor ? nameStyle(c.username, c.roleColor) : memberStyle(c.username, c.roleIds, roleDefs)}>
                 {c.label}
               </span>
               {c.sub && <span className="ml-auto truncate pl-2 text-xs text-zinc-500">{c.sub}</span>}

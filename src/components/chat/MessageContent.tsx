@@ -1,11 +1,11 @@
 "use client";
 
 import { Fragment, memo, useMemo, type ReactNode } from "react";
-import type { Member } from "@/lib/types";
+import type { Member, RoleDef } from "@/lib/types";
 import { cn, isEmojiOnly } from "@/lib/utils";
 import { useChat } from "@/store/chat";
 
-const TOKEN = /(https?:\/\/[^\s<]+[^\s<.,:;"')\]!?])|(@[A-Za-z0-9_.-]{2,32})/g;
+const TOKEN = /(https?:\/\/[^\s<]+[^\s<.,:;"')\]!?])|(@[A-Za-z0-9_.-]{2,40})/g;
 
 interface MessageContentProps {
   content: string;
@@ -17,6 +17,12 @@ interface MessageContentProps {
 
 export const MessageContent = memo(function MessageContent({ content, me, myId, everyone }: MessageContentProps) {
   const members = useChat((s) => s.members);
+  const roleDefs = useChat((s) => s.roleDefs);
+  const bySlug = useMemo(() => {
+    const map = new Map<string, RoleDef>();
+    for (const r of Object.values(roleDefs)) if (r.slug) map.set(r.slug, r);
+    return map;
+  }, [roleDefs]);
   const byHandle = useMemo(() => {
     const map = new Map<string, Member>();
     for (const m of Object.values(members)) if (m.handle) map.set(m.handle.toLowerCase(), m);
@@ -48,7 +54,18 @@ export const MessageContent = memo(function MessageContent({ content, me, myId, 
     } else if (mention) {
       const handle = mention.slice(1).toLowerCase();
       const member = byHandle.get(handle);
-      if (handle === "everyone" || handle === "here") {
+      const role = bySlug.get(handle);
+      if (role) {
+        parts.push(
+          <span
+            key={index}
+            className="rounded-md px-1 py-px font-medium"
+            style={{ color: role.color2 ?? role.color, backgroundColor: `${role.color}33` }}
+          >
+            @{role.name}
+          </span>,
+        );
+      } else if (handle === "everyone" || handle === "here") {
         parts.push(
           <span
             key={index}

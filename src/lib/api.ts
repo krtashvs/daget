@@ -4,7 +4,7 @@ import type { Member, MessageRow, MessageType, Profile, ProfileDetails, ReplyPre
 import { uuid } from "./utils";
 
 const MESSAGE_COLUMNS =
-  "id,user_id,username,content,type,media_url,reply_to,created_at,avatar_url,author_handle,duration_ms,mentions,mention_everyone";
+  "id,user_id,username,content,type,media_url,reply_to,created_at,avatar_url,author_handle,duration_ms,mentions,mention_everyone,mention_roles";
 
 interface MemberRow {
   id: string;
@@ -245,7 +245,7 @@ export async function listMembers(): Promise<Member[]> {
 }
 
 export async function fetchRoleDefs(): Promise<RoleDef[]> {
-  const { data, error } = await getSupabase().from("discord_roles").select("id,name,color,color2,color3,position").order("position", { ascending: false });
+  const { data, error } = await getSupabase().from("discord_roles").select("id,name,color,color2,color3,position,slug").order("position", { ascending: false });
   if (error) return [];
   return data as RoleDef[];
 }

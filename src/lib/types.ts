@@ -20,6 +20,8 @@ export interface MessageRow {
   mentions?: string[] | null;
   /** Sent by an admin/moderator with @everyone or @here. */
   mention_everyone?: boolean | null;
+  /** Discord role ids mentioned with @role-slug. */
+  mention_roles?: string[] | null;
 }
 
 /** Message as held in the client store (row + optimistic-send state). */
@@ -52,6 +54,8 @@ export interface RoleDef {
   /** Third colour (Discord "holographic" style). */
   color3?: string | null;
   position: number;
+  /** Text used to mention the role, e.g. "rizz-academy-student". */
+  slug?: string | null;
 }
 
 /** Entry of the member directory (list_members). */
