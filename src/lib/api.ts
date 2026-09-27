@@ -11,9 +11,11 @@ export async function joinChat(username: string, secret: string): Promise<{ id: 
   return data as { id: string; username: string };
 }
 
-export async function touchUser(secret: string): Promise<void> {
-  const { error } = await getSupabase().rpc("touch_user", { p_secret: secret });
+/** Heartbeat. Returns the username the server currently holds for this browser. */
+export async function touchUser(secret: string): Promise<string | null> {
+  const { data, error } = await getSupabase().rpc("touch_user", { p_secret: secret });
   if (error) throw error;
+  return typeof data === "string" ? data : null;
 }
 
 export async function fetchLatestMessages(limit = PAGE_SIZE): Promise<MessageRow[]> {

@@ -92,9 +92,18 @@ export function useRealtimeRoom(session: Session) {
     const typingTimer = window.setInterval(() => store().pruneTyping(), 1000);
 
     const heartbeat = () => {
-      if (document.visibilityState === "visible") void touchUser(secret).catch(() => undefined);
+      if (document.visibilityState !== "visible") return;
+      touchUser(secret)
+        .then((current) => {
+          // Our name was released while we were away and someone else took it.
+          if (current && current !== username) {
+            store().setKickReason("Username kamu dipakai orang lain karena kamu lama tidak aktif. Pilih username lagi.");
+          }
+        })
+        .catch(() => undefined);
     };
     const heartbeatTimer = window.setInterval(heartbeat, HEARTBEAT_MS);
+    heartbeat();
 
     // Mobile browsers freeze sockets in the background — catch up when we come back.
     const onVisible = () => {

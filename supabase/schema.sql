@@ -120,8 +120,9 @@ revoke execute on function public.user_from_secret(text) from public, anon, auth
 --  • Username baru      → dibuat & diikat ke secret.
 --  • Username milik sendiri → diperbarui last_seen.
 --  • Secret sudah punya username lain → username di-rename (Ganti Username).
---  • Username milik orang lain & aktif ≤ 30 hari → error username_taken.
---  • Username milik orang lain & tidak aktif > 30 hari → dibebaskan.
+--  • Username milik orang lain & aktif ≤ 10 menit → error username_taken.
+--  • Username milik orang lain & tidak aktif > 10 menit → dibebaskan.
+--    (client mengirim heartbeat tiap 2 menit selama tab terbuka)
 -- ────────────────────────────────────────────────────────────────────
 
 create or replace function public.join_chat(p_username text, p_secret text)
@@ -152,7 +153,7 @@ begin
   select * into v_other from public.users where lower(username) = lower(v_name);
 
   if v_other.id is not null and v_other.secret_hash <> v_hash then
-    if v_other.last_seen > now() - interval '30 days' then
+    if v_other.last_seen > now() - interval '10 minutes' then
       raise exception 'username_taken';
     end if;
 
@@ -283,8 +284,10 @@ $$;
 --  RPC: touch_user — heartbeat last_seen
 -- ────────────────────────────────────────────────────────────────────
 
-create or replace function public.touch_user(p_secret text)
-returns void
+-- Mengembalikan username saat ini, agar client tahu jika namanya sudah diambil orang lain.
+drop function if exists public.touch_user(text);
+create function public.touch_user(p_secret text)
+returns text
 language plpgsql
 volatile
 security definer
@@ -295,6 +298,7 @@ declare
 begin
   v_user := public.user_from_secret(p_secret);
   update public.users set last_seen = now() where id = v_user.id;
+  return v_user.username;
 end;
 $$;
 

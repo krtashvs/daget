@@ -97,15 +97,15 @@ Tabel `messages`
 
 Saat pertama masuk, browser membuat **secret acak 256-bit** yang disimpan di `localStorage`. Database hanya menyimpan hash-nya. Semua penulisan berjalan melalui fungsi RPC `SECURITY DEFINER` yang memverifikasi secret:
 
-- `join_chat(username, secret)` — masuk atau ganti username. Username yang sedang dipakai orang lain ditolak (`username_taken`); username yang tidak aktif lebih dari 30 hari dibebaskan otomatis.
+- `join_chat(username, secret)` — masuk atau ganti username. Username yang sedang dipakai orang lain ditolak (`username_taken`); username terkunci selama pemiliknya aktif dan otomatis bebas setelah 10 menit tidak aktif (heartbeat tiap 2 menit selama tab terbuka).
 - `send_message(...)` — username pengirim diambil dari database, jadi tidak bisa dipalsukan. URL media harus berasal dari bucket `chat-media` atau GIPHY. Anti-spam: maks. 8 pesan / 10 detik.
 - `delete_message(secret, id)` — hanya pemilik pesan.
-- `touch_user(secret)` — memperbarui `last_seen`.
+- `touch_user(secret)` — memperbarui `last_seen` dan mengembalikan username saat ini (client kembali ke layar masuk jika namanya sudah dipakai orang lain).
 - `search_messages(query)` — pencarian teks (indeks trigram).
 
 Role `anon` hanya boleh `SELECT` tabel `messages`. Tabel `users` sama sekali tidak bisa diakses langsung dari client.
 
-> Karena tidak ada akun, menghapus data browser (localStorage) berarti kehilangan kepemilikan username di perangkat itu. Username tersebut akan bebas dipakai lagi setelah 30 hari tidak aktif.
+> Karena tidak ada akun, menghapus data browser (localStorage) berarti kehilangan kepemilikan username di perangkat itu. Username tersebut akan bebas dipakai lagi setelah 10 menit tidak aktif.
 
 ## Project Supabase bawaan
 
@@ -175,5 +175,5 @@ Catatan:
 | "Menghubungkan…" terus-menerus | Cek Realtime aktif dan channel publik diizinkan (langkah 3) |
 | Pesan terkirim tapi tidak muncul realtime di tab lain | Pastikan blok `alter publication supabase_realtime add table public.messages` di schema berhasil (Database → Publications) |
 | Upload gambar gagal | Pastikan bucket `chat-media` ada (Storage) dan policy upload dari schema terpasang |
-| `username_taken` | Username dipakai orang lain yang aktif dalam 30 hari terakhir — pilih nama lain |
+| `username_taken` | Username sedang dipakai orang yang aktif dalam 10 menit terakhir — tunggu sebentar atau pilih nama lain |
 | Tombol GIF membuka pemilih file | `GIPHY_API_KEY` belum diisi — itu perilaku normal |

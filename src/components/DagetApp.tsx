@@ -24,6 +24,16 @@ export function DagetApp({ config }: { config: PublicConfig }) {
   const setSession = useChat((s) => s.setSession);
   const [view, setView] = useState<View>("boot");
   const [joinError, setJoinError] = useState<string | null>(null);
+  const kickReason = useChat((s) => s.kickReason);
+
+  useEffect(() => {
+    if (!kickReason) return;
+    clearSession();
+    setSession(null);
+    setJoinError(kickReason);
+    setView("join");
+    useChat.getState().setKickReason(null);
+  }, [kickReason, setSession]);
 
   useEffect(() => {
     if (!configured) return;

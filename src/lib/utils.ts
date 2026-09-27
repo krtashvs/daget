@@ -105,7 +105,7 @@ export function compareMessages(a: { created_at: string; id: string }, b: { crea
 }
 
 const ERROR_MESSAGES: Record<string, string> = {
-  username_taken: "Username sudah dipakai orang lain. Coba yang lain.",
+  username_taken: "Username sedang dipakai. Kalau itu kamu di browser lain, tunggu ±10 menit lalu coba lagi, atau pilih nama lain.",
   invalid_username: "Username tidak valid.",
   invalid_session: "Sesi tidak valid. Silakan masuk lagi.",
   rate_limited: "Pelan-pelan! Tunggu beberapa detik sebelum mengirim lagi.",

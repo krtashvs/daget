@@ -40,6 +40,8 @@ interface ChatState {
   /** Message awaiting delete confirmation. */
   deleteTarget: ChatMessage | null;
   lightboxUrl: string | null;
+  /** Set when this browser lost its username; the app returns to the join screen. */
+  kickReason: string | null;
 
   setSession: (session: Session | null) => void;
   setStatus: (status: ConnectionStatus) => void;
@@ -73,6 +75,7 @@ interface ChatState {
   setSheetMessage: (message: ChatMessage | null) => void;
   setDeleteTarget: (message: ChatMessage | null) => void;
   setLightboxUrl: (url: string | null) => void;
+  setKickReason: (reason: string | null) => void;
 
   resetRoom: () => void;
 }
@@ -106,6 +109,7 @@ export const useChat = create<ChatState>()((set, get) => ({
   session: null,
   ...initialRoom,
   panel: null,
+  kickReason: null,
   scrollToBottomTick: 0,
   toasts: [],
 
@@ -211,6 +215,7 @@ export const useChat = create<ChatState>()((set, get) => ({
   setSheetMessage: (sheetMessage) => set({ sheetMessage }),
   setDeleteTarget: (deleteTarget) => set({ deleteTarget }),
   setLightboxUrl: (lightboxUrl) => set({ lightboxUrl }),
+  setKickReason: (kickReason) => set({ kickReason }),
 
   resetRoom: () => {
     for (const m of get().messages) if (m.localPreview) URL.revokeObjectURL(m.localPreview);
