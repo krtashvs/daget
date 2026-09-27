@@ -55,14 +55,18 @@ set search_path = ''
 as $$
 declare
   v_settings public.app_settings;
+  v_author   public.users;
 begin
   select * into v_settings from public.app_settings where id = 1;
-  if v_settings.maintenance then
+  select * into v_author from public.users where id = new.user_id;
+
+  -- Selama mode istirahat hanya admin yang bisa mengirim (untuk tes).
+  if v_settings.maintenance and not coalesce(v_author.is_admin, false) then
     raise exception 'maintenance';
   end if;
-  if v_settings.require_discord and not exists (
-    select 1 from public.users u
-     where u.id = new.user_id and u.auth_id is not null and u.verified_at is not null and not u.banned
+
+  if v_settings.require_discord and not (
+    v_author.id is not null and v_author.auth_id is not null and v_author.verified_at is not null and not v_author.banned
   ) then
     raise exception 'discord_required';
   end if;
